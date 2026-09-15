@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>포코와 별빛 탐험대</title>
+<meta name="theme-color" content="#1b1f3b">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="포코 탐험대">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="assets/icons/icon-192.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/icons/apple-touch-icon.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Jua&family=Noto+Sans+KR:wght@400;700&display=swap">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- 홈 화면 -->
+<section id="screen-home" class="screen active">
+  <!-- 장면 상자: 배경·그림자·포코가 한 좌표계 안에서 함께 스케일/이동 (켄번스 포함) -->
+  <div class="home-scene" id="home-scene">
+    <div class="home-bg"></div>
+    <div class="home-anchor" id="home-anchor">
+      <div class="home-shadow"></div>
+      <div class="home-poko" id="home-poko"><img class="hat-slot home-hat" alt="" hidden></div>
+    </div>
+  </div>
+  <div class="home-tint"></div>
+  <canvas id="home-fx" class="home-fx"></canvas>
+  <button class="btn-music" id="btn-music-home" data-music-toggle title="음악 끄기" aria-label="음악 켜기/끄기"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a8.5 8.5 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+  <div class="home-panel" id="home-panel">
+    <p class="eyebrow">별빛 집중 어드벤처</p>
+    <h1 class="title"><span>포코와</span><span>별빛 탐험대</span></h1>
+    <p class="subtitle">집중의 힘으로 사라진 별을 되찾자!</p>
+    <div class="home-stats" id="home-stats"></div>
+    <div class="home-challenge" id="home-challenge"></div>
+    <div class="home-today" id="home-today"></div>
+    <p class="home-notice" id="home-notice" hidden></p>
+    <div class="home-menu">
+      <button class="btn btn-primary btn-big btn-shine" id="btn-start-session">오늘의 탐험 시작</button>
+      <div class="home-row">
+        <button class="btn btn-glass" id="btn-free-play">🗺 세계 고르기</button>
+        <button class="btn btn-glass" id="btn-shop">🎩 포코 꾸미기</button>
+        <button class="btn btn-glass" id="btn-report">📊 보호자 리포트</button>
+      </div>
+    </div>
+    <div class="home-stickers" id="home-stickers"></div>
+    <button class="btn btn-glass" id="btn-install" hidden>📲 홈 화면에 앱으로 설치</button>
+    <p class="install-hint" id="install-hint" hidden>📲 iPhone: Safari 공유 버튼 → "홈 화면에 추가"로 앱처럼 설치할 수 있어요</p>
+    <p class="disclaimer">보호자와 함께 하루 25분 이내로 즐기는 걸 추천해요. 매일 조금씩이 가장 좋아요!</p>
+  </div>
+</section>
+
+<!-- 세계 선택 (자유 모드) -->
+<section id="screen-select" class="screen">
+  <div class="select-wrap">
+    <h2 class="select-title">어느 세계로 갈까?</h2>
+    <div class="world-cards" id="world-cards"></div>
+    <button class="btn btn-glass" data-go="home">← 돌아가기</button>
+  </div>
+</section>
+
+<!-- 상점: 포코 꾸미기 -->
+<section id="screen-shop" class="screen">
+  <canvas id="shop-confetti" class="confetti"></canvas>
+  <div class="panel shop-panel">
+    <h2>🎩 포코 꾸미기</h2>
+    <div class="shop-preview"><div id="shop-poko" class="sprite-box"><img class="hat-slot box-hat" alt="" hidden></div><p id="shop-preview-text">모자를 골라 보세요</p></div>
+    <p class="report-note">미션에서 모은 코인으로 모자를 사요. 보유 코인: <b id="shop-coins">0</b> 🪙</p>
+    <div class="shop-grid" id="shop-grid"></div>
+    <p class="shop-msg" id="shop-msg"></p>
+    <button class="btn btn-ghost" data-go="home">← 돌아가기</button>
+  </div>
+</section>
+
+<!-- 스테이지 지도 -->
+<section id="screen-stages" class="screen">
+  <div class="stages-wrap">
+    <div class="stages-head">
+      <button class="btn btn-glass" id="btn-stages-back">← 세계 고르기</button>
+      <div><h2 id="stages-title"></h2><small id="stages-sub"></small></div>
+    </div>
+    <div class="stage-map" id="stage-map"></div>
+    <div class="stages-guide"><img id="stages-poko" src="assets/characters/poko_thinking.png" alt=""><p id="stages-tip"></p></div>
+  </div>
+</section>
+
+<!-- 미션 안내 -->
+<section id="screen-intro" class="screen">
+  <div class="panel intro-panel">
+    <p class="world-tag" id="intro-world"></p>
+    <div class="story-row">
+      <div id="intro-poko" class="poko sprite-box"><img class="hat-slot box-hat" alt="" hidden></div>
+      <p class="story-bubble" id="intro-story"></p>
+    </div>
+    <div class="bubble">
+      <h2 id="intro-title"></h2>
+      <p id="intro-desc"></p>
+      <div id="intro-demo" class="intro-demo"></div>
+      <div class="intro-stage" id="intro-stage"></div>
+      <p class="level-tag" hidden>현재 레벨 <span id="intro-level">1</span></p>
+    </div>
+    <button class="btn btn-primary btn-big" id="btn-intro-go">준비됐어!</button>
+  </div>
+</section>
+
+<!-- 미션 진행 -->
+<section id="screen-task" class="screen">
+  <div class="hud">
+    <div class="hud-left"><span class="hud-avatar"><img id="hud-poko" class="hud-poko" src="assets/characters/poko_neutral.png" alt=""><img class="hat-slot hud-hat" alt="" hidden></span><span id="hud-mission"></span></div>
+    <div class="hud-center"><div class="progress"><div id="hud-progress" class="progress-fill"></div></div><span id="hud-combo" class="hud-combo"></span><span id="hud-items" class="hud-items"></span></div>
+    <div class="hud-right"><img id="hud-coin-icon" src="assets/characters/coin.png" class="hud-coin" alt=""><span id="hud-coins">0</span>
+      <button class="btn-music hud" id="btn-music-hud" data-music-toggle title="음악 끄기" aria-label="음악 켜기/끄기"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a8.5 8.5 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
+      <button class="btn-pause" id="btn-pause" title="잠깐 멈춤 (Esc)" aria-label="잠깐 멈춤"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.5"/></svg></button></div>
+  </div>
+  <div id="pause-overlay" class="pause-overlay" hidden>
+    <div class="pause-box">
+      <img src="assets/characters/poko_sleepy.png" alt="" class="pause-poko">
+      <h2>잠깐 쉬는 중</h2>
+      <p>준비되면 다시 시작해요. 시간은 멈춰 있어요.</p>
+      <div id="pause-main">
+        <button class="btn btn-primary btn-big" id="btn-resume">계속하기</button>
+        <button class="btn btn-ghost" id="btn-quit">그만하기</button>
+      </div>
+      <div id="pause-confirm" hidden>
+        <p class="confirm-text">정말 그만할까요?<br><small>지금 하던 미션의 기록은 저장되지 않아요.</small></p>
+        <div class="home-row">
+          <button class="btn btn-primary" id="btn-quit-yes">네, 그만할래요</button>
+          <button class="btn btn-ghost" id="btn-quit-no">아니요, 계속할래요</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="boss-bar" class="boss-bar" hidden><img id="boss-img" src="assets/characters/spiky_king.png" alt=""><div class="boss-meta"><b id="boss-name">심술이 대왕</b><div class="boss-track"><div id="boss-hp" class="boss-hp"></div></div></div></div>
+  <canvas id="task-fx" class="task-fx" hidden></canvas>
+  <div id="stage" class="stage"></div>
+  <div id="task-controls" class="task-controls"></div>
+  <div id="feedback-flash" class="flash"></div>
+  <div id="fx-layer" class="fx-layer"></div>
+</section>
+
+<!-- 보상 화면 -->
+<section id="screen-reward" class="screen">
+  <canvas id="confetti" class="confetti"></canvas>
+  <div class="panel reward-panel">
+    <div id="reward-poko" class="poko sprite-box"><img class="hat-slot box-hat" alt="" hidden></div>
+    <h2 id="reward-title">미션 완료!</h2>
+    <p id="reward-msg"></p>
+    <div class="reward-stars" id="reward-stars"></div>
+    <div class="reward-stats" id="reward-stats"></div>
+    <div id="reward-boss"></div>
+    <div class="reward-sticker" id="reward-sticker"></div>
+    <button class="btn btn-primary btn-big" id="btn-reward-next">다음으로</button>
+  </div>
+</section>
+
+<!-- 세션 종료 -->
+<section id="screen-end" class="screen">
+  <div class="panel">
+    <div id="end-poko" class="poko sprite-box"><img class="hat-slot box-hat" alt="" hidden></div>
+    <h2>오늘의 탐험 완료!</h2>
+    <p id="end-msg"></p>
+    <div class="starmap" id="starmap"></div>
+    <button class="btn btn-primary btn-big" data-go="home">홈으로</button>
+  </div>
+</section>
+
+<!-- 보호자 리포트 -->
+<section id="screen-report" class="screen">
+  <div class="panel report-panel">
+    <h2>보호자 리포트</h2>
+    <p class="report-note">아이가 어떤 힘을 키우고 있는지 보여주는 놀이 기록이에요. 며칠에 걸친 흐름을 함께 봐 주세요.</p>
+    <div id="report-body"></div>
+    <div class="home-row">
+      <button class="btn btn-ghost" id="btn-tester">🧪 테스터 모드</button>
+      <button class="btn btn-ghost" id="btn-export">JSON 내보내기</button>
+      <button class="btn btn-ghost" id="btn-reset">기록 초기화</button>
+      <button class="btn btn-ghost danger" id="btn-reset-yes" hidden>정말 초기화</button>
+      <button class="btn btn-ghost" data-go="home">← 돌아가기</button>
+    </div>
+  </div>
+</section>
+
+<script src="js/audio.js"></script>
+<script src="js/music.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/adaptive.js"></script>
+<script src="js/fx.js"></script>
+<script src="js/sprite.js"></script>
+<script src="js/stagefx.js"></script>
+<script src="js/tasks/gonogo.js"></script>
+<script src="js/tasks/cpt.js"></script>
+<script src="js/tasks/nback.js"></script>
+<script src="js/tasks/search.js"></script>
+<script src="js/tasks/switch.js"></script>
+<script src="js/tasks/flanker.js"></script>
+<script src="js/tasks/stroop.js"></script>
+<script src="js/tasks/trail.js"></script>
+<script src="js/tasks/headcount.js"></script>
+<script src="js/tasks/balloons.js"></script>
+<script src="js/tasks/calc.js"></script>
+<script src="js/tasks/melody.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>

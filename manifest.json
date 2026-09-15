@@ -1,0 +1,30 @@
+{
+  "name": "포코와 별빛 탐험대",
+  "short_name": "포코 탐험대",
+  "description": "포코와 함께 집중의 힘을 키우는 별빛 어드벤처",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#1b1f3b",
+  "theme_color": "#1b1f3b",
+  "lang": "ko",
+  "icons": [
+    {
+      "src": "assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "assets/icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}
