@@ -1,0 +1,11 @@
+# 참고용 외부 저장소 클론 (원본 GitHub 링크는 README 참조)
+reference/
+# 빌드 산출물
+dist/*.zip
+node_modules/
+# 임시 검토 이미지
+**/_*.png
+**/_*.jpg
+game/assets/sprites/sprites.json
+.DS_Store
+Thumbs.db
