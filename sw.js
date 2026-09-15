@@ -1,5 +1,5 @@
 // 서비스 워커 — 앱 셸과 에셋을 캐시해 오프라인/홈 화면 앱으로 동작 (캐시 이름을 바꾸면 새 버전 배포)
-const CACHE = "poko-focus-v202609160123";
+const CACHE = "poko-focus-v202609160152";
 const ASSETS = [
  "assets/bg/attic.jpg",
  "assets/bg/camp.jpg",
@@ -152,6 +152,19 @@ const ASSETS = [
  "assets/icons/icon-512.png",
  "assets/icons/icon-maskable-512.png",
  "assets/keyvisual.jpg",
+ "assets/music/balloons.mp3",
+ "assets/music/calc.mp3",
+ "assets/music/cpt.mp3",
+ "assets/music/flanker.mp3",
+ "assets/music/gonogo.mp3",
+ "assets/music/headcount.mp3",
+ "assets/music/home.mp3",
+ "assets/music/melody.mp3",
+ "assets/music/nback.mp3",
+ "assets/music/search.mp3",
+ "assets/music/stroop.mp3",
+ "assets/music/switch.mp3",
+ "assets/music/trail.mp3",
  "assets/sprites/bunny_catch.png",
  "assets/sprites/bunny_duck.png",
  "assets/sprites/bunny_idle.png",

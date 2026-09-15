@@ -7,8 +7,9 @@
 //   꿀벌(7+)     → 숙이기(↓/버튼)   : 머리 위로 지나가게 피한다
 //   심술이       → 아무것도 안 함    : 혀를 내밀며 옆으로 스쳐 지나간다 (No-Go)
 //   응답 창 = 상대가 주인공 앞에 도착할 때까지의 시간. 도착 후엔 각자 "지나가는" 모션을 보여준다.
-//   점프·숙이기는 타이밍 동작: 장애물이 가까이 왔을 때(응답 창의 마지막 45%, 장애물이 반짝이며 "지금!")만 성공.
-//   너무 일찍 뛰면 먼저 착지해 통나무에 걸려 넘어지고, 너무 일찍 숙이면 일어나다 꿀벌에 부딪힌다 → 하트 -1.
+//   잡기·점프·숙이기 모두 타이밍 동작: 상대가 가까이 왔을 때(응답 창의 마지막 45%, 반짝이며 "지금!")만 성공.
+//   너무 일찍 손을 뻗으면 헛손질(별별이는 그냥 지나감), 너무 일찍 뛰면 먼저 착지해 통나무에 걸려 넘어지고,
+//   너무 일찍 숙이면 일어나다 꿀벌에 부딪힌다 → 모두 하트 -1. 심술이(No-Go)는 언제 눌러도 오경보.
 const TaskGoNoGo = {
   id: "gonogo",
   name: "반짝 숲 달리기",
@@ -47,8 +48,8 @@ const TaskGoNoGo = {
     return {
       title: "반짝 숲 달리기",
       desc: (p.reverse
-        ? "<b>별별이</b>가 달려오면 <b>잡기!</b> <b>심술이</b>는 참기!<br>이 숲은 마법에 걸려서, 달리다가 <b>규칙이 뒤집힐 수도</b> 있어."
-        : "친구들이 한 명씩 <b>달려와요</b>. <b>별별이</b>가 오면 <b>잡기!</b>(스페이스 또는 화면 터치)<br><b>심술이</b>가 오면 <b>아무것도 누르지 말기</b> — 가만히 있으면 옆으로 스쳐 지나가요!")
+        ? "<b>별별이</b>가 코앞에서 <b>'지금!'</b> 할 때 <b>잡기!</b> <b>심술이</b>는 참기!<br>이 숲은 마법에 걸려서, 달리다가 <b>규칙이 뒤집힐 수도</b> 있어."
+        : "친구들이 한 명씩 <b>달려와요</b>. <b>별별이</b>가 코앞에서 <b>반짝이며 '지금!'</b> 할 때 <b>잡기!</b>(스페이스 또는 화면 터치) — 너무 일찍 뻗으면 헛손질!<br><b>심술이</b>가 오면 <b>아무것도 누르지 말기</b> — 가만히 있으면 옆으로 스쳐 지나가요!")
         + (t.friend ? `<br>🐾 <b>${this.NAMES[f]}</b>도 같이 달려와요. ${this.NAMES[f]}도 잡기!` : "")
         + (t.log ? "<br>🪵 <b>통나무</b>가 굴러오면 <b>점프!</b>(↑ 키 또는 점프 버튼)로 뛰어넘어요. 통나무가 <b>반짝이며 '지금!'</b> 할 때 뛰어야 해요 — 너무 일찍 뛰면 넘어져요!" : "")
         + (t.fog ? "<br>🌫 안개 때문에 <b>가까이 와야</b> 또렷하게 보여요." : "")
@@ -139,7 +140,7 @@ const TaskGoNoGo = {
       cur.pressed = action;
       cur.rt = Math.round(performance.now() - cur.onset);
       const { t, wrap, el } = cur;
-      const early = t.go && (t.action === "jump" || t.action === "duck") && action === t.action && cur.rt < cur.window * ZONE;
+      const early = t.go && action === t.action && cur.rt < cur.window * ZONE;
       const arrival = early ? 0 : Math.max(0, cur.window - cur.rt);
       if (action === "catch") catchAnim(); else if (action === "jump") jump(arrival); else duck(arrival);
       // 타이밍 동작(점프·숙이기)이 너무 일찍 나오면 동작만 하고 결과는 장애물 도착 때 판정한다 (넘어짐)
@@ -154,9 +155,9 @@ const TaskGoNoGo = {
           wrap.classList.add("pull"); el.classList.add("caught");
           const c = { x: P.left + P.width * 0.7, y: P.top + P.height * 0.5 };
           Fx.burst(c.x, c.y, t.gold ? "#fff1a8" : t.kind === "star" ? "#ffd24d" : "#ffd6e6", t.gold ? 18 : 10);
-          const quick = cur.rt < cur.window * 0.45; // 멀리 있을 때 바로 판단하면 번개 보너스
+          const perfect = cur.rt > cur.window * 0.8; // 코앞에서 딱 맞춰 잡으면 보너스
           if (t.gold) ctx.hit(el, { msg: "황금 별별이!", bonus: 5 });
-          else if (quick) ctx.hit(el, { msg: "번개 판단!", bonus: 1 });
+          else if (perfect) ctx.hit(el, { msg: "딱 맞춰 잡았다!", bonus: 1 });
           else ctx.hit(el, { msg: "잡았다!" });
         } else {
           // 점프/숙이기 적중: 장애물이 발밑/머리 위로 지나가는 순간에 칭찬 (도착 시점에 맞춰)
@@ -210,7 +211,7 @@ const TaskGoNoGo = {
         else el.style.backgroundImage = `url("assets/characters/${IMG[t.kind]}.png")`;
         lane.appendChild(wrap);
         cur = { t, wrap, el, pressed: null, onset: performance.now(), rt: null, window: win, early: false };
-        const readyTimer = (t.kind === "log" || t.kind === "bee") ? setTimeout(() => { if (wrap.isConnected && !wrap.classList.contains("stop")) wrap.classList.add("ready"); }, Math.round(win * ZONE)) : null;
+        const readyTimer = t.go ? setTimeout(() => { if (wrap.isConnected && !wrap.classList.contains("stop")) wrap.classList.add("ready"); }, Math.round(win * ZONE)) : null;
         await ctx.wait(win);
         if (readyTimer) clearTimeout(readyTimer);
         wrap.classList.remove("ready");
@@ -220,8 +221,11 @@ const TaskGoNoGo = {
         if (t.go) type = !done.pressed ? "omission" : done.early ? "early" : done.pressed === t.action ? "hit" : "wrong";
         else type = done.pressed ? "commission" : "correct_rejection";
         if (type === "early") {
-          // 너무 일찍 뛰거나 숙임 → 장애물에 걸려 넘어진다
-          bonk(wrap, el, t.kind === "log" ? "너무 일찍 뛰었어! 통나무에 걸렸다" : "너무 일찍 숙였어! 꿀벌에 부딪혔다", true);
+          if (t.action === "catch") {
+            // 너무 일찍 손을 뻗음 → 헛손질, 별별이는 그냥 지나가 버린다
+            wrap.classList.add("passed"); el.classList.add("flyaway"); oops();
+            ctx.miss(el, { msg: "너무 일찍 뻗었어! 헛손질…" });
+          } else bonk(wrap, el, t.kind === "log" ? "너무 일찍 뛰었어! 통나무에 걸렸다" : "너무 일찍 숙였어! 꿀벌에 부딪혔다", true);
         }
         if (type === "omission") {
           if (t.kind === "bee" || t.kind === "log") bonk(wrap, el, `앗, ${N[t.kind]}!`, t.kind === "log");

@@ -1,8 +1,8 @@
-// BGM — Web Audio 시퀀서 (외부 오디오 파일 없음).
+// BGM 시퀀서(합성) — 음원 파일이 없거나 로드에 실패했을 때의 대체용. 실제 BGM 은 아래 Music(파일 재생)이 담당.
 // 세계(테마)마다 조성·박자·음색·멜로디가 다른 곡이 있고, 스테이지 구간에 따라 편곡이 바뀐다:
 //   1~3 기본(멜로디+베이스+패드) / 4~6 +아르페지오·하이햇 / 7~9 템포↑·킥·후반 멜로디 옥타브↑ / 10 보스: 단조 변환·템포↑·8분 베이스
 // 볼륨은 낮게(주의 분산 최소화). Music.enabled 는 localStorage에 저장.
-const Music = (() => {
+const SynthMusic = (() => {
   const KEY = "poko_music_on";
   let enabled = (() => { try { return localStorage.getItem(KEY) !== "0"; } catch (e) { return true; } })();
   let ctx = null, master = null, timer = null, current = null, song = null, step = 0, nextTime = 0, ducked = false;
@@ -147,4 +147,62 @@ const Music = (() => {
   }
 
   return { play, stop, duck, setEnabled, armAutoplay, THEMES, get enabled() { return enabled; }, get current() { return current; } };
+})();
+
+
+// ===================== BGM v2 — 세계별 음원 파일 재생 (assets/music/*.mp3) =====================
+// 편안하고 경쾌한 어린이용 곡을 세계마다 하나씩(홈 포함 13곡) 둔다. 60초 루프, 두 트랙을 교차 페이드.
+// 스테이지 구간(4~6 / 7~9 / 10 보스)은 재생 속도로 살짝 긴장감을 준다(음높이 유지). 파일이 없으면 합성 시퀀서로 대체.
+const Music = (() => {
+  const KEY = "poko_music_on";
+  let enabled = (() => { try { return localStorage.getItem(KEY) !== "0"; } catch (e) { return true; } })();
+  const VOL = { home: 0.45, mission: 0.32 };
+  const RATE = [1, 1, 1.04, 1.08, 1.12]; // band 1~4
+  const TRACKS = {};
+  ["home", "gonogo", "nback", "cpt", "search", "flanker", "switch", "stroop", "trail", "headcount", "balloons", "calc", "melody"].forEach((k) => { TRACKS[k] = `assets/music/${k}.mp3`; });
+  let a = null, b = null, cur = null, current = null, ducked = false, fadeTimer = null, failed = false, unlocked = false;
+
+  function el() { const e = new window.Audio(); e.loop = true; e.preload = "auto"; e.volume = 0; return e; }
+  function band(level) { return level >= 10 ? 4 : level >= 7 ? 3 : level >= 4 ? 2 : 1; }
+  function target() { return (current && current.startsWith("home") ? VOL.home : VOL.mission) * (ducked ? 0.35 : 1); }
+  function fade(e, to, ms, stopAfter) {
+    if (!e) return;
+    const from = e.volume, t0 = performance.now();
+    const step = () => { const k = Math.min(1, (performance.now() - t0) / ms); e.volume = from + (to - from) * k; if (k < 1) requestAnimationFrame(step); else if (stopAfter) { e.pause(); } };
+    step();
+  }
+  function play(name, level = 1) {
+    if (failed) return SynthMusic.play(name, level);
+    const key = `${name}:${band(level)}`;
+    if (!enabled) { current = key; return; }
+    if (current === key && cur && !cur.paused) { fade(cur, target(), 300); return; }
+    const sameTrack = current && current.split(":")[0] === name && cur;
+    current = key;
+    if (sameTrack) { cur.playbackRate = RATE[band(level)]; fade(cur, target(), 300); return; }
+    const next = cur === a ? (b || (b = el())) : (a || (a = el()));
+    const prev = cur; cur = next;
+    next.src = TRACKS[name] || TRACKS.home; next.playbackRate = RATE[band(level)]; next.currentTime = 0;
+    next.onerror = () => { if (!failed) { failed = true; SynthMusic.setEnabled(enabled); SynthMusic.play(name, level); } };
+    const p = next.play();
+    if (p && p.catch) p.catch(() => { /* 첫 상호작용 전 자동재생 차단 → armAutoplay 가 다시 시도 */ });
+    fade(next, target(), 900);
+    if (prev) fade(prev, 0, 700, true);
+  }
+  function stop() { if (cur) fade(cur, 0, 400, true); if (failed) SynthMusic.stop(); }
+  function duck(on) { ducked = on; if (failed) return SynthMusic.duck(on); if (cur && !cur.paused) fade(cur, target(), 300); }
+  function setEnabled(on) {
+    enabled = on;
+    try { localStorage.setItem(KEY, on ? "1" : "0"); } catch (e) { /* ignore */ }
+    if (failed) return SynthMusic.setEnabled(on);
+    if (on) { if (current) { const [n, bd] = current.split(":"); const c = current; current = null; cur = null; play(n, bd === "4" ? 10 : bd === "3" ? 7 : bd === "2" ? 4 : 1); } }
+    else stop();
+    document.querySelectorAll("[data-music-toggle]").forEach((x) => { x.classList.toggle("muted", !on); x.title = on ? "음악 끄기" : "음악 켜기"; x.setAttribute("aria-pressed", String(on)); });
+  }
+  function armAutoplay() {
+    const kick = () => { unlocked = true; if (enabled && current) { const [n, bd] = current.split(":"); const c = current; current = null; if (cur) { cur.pause(); } cur = null; play(n, bd === "4" ? 10 : bd === "3" ? 7 : bd === "2" ? 4 : 1); } };
+    document.addEventListener("pointerdown", kick, { once: true });
+    document.addEventListener("keydown", kick, { once: true });
+  }
+  return { play, stop, duck, setEnabled, armAutoplay, TRACKS, get enabled() { return enabled; }, get current() { return current; },
+    get state() { return cur ? { src: cur.src.split("/").pop(), paused: cur.paused, volume: +cur.volume.toFixed(2), rate: cur.playbackRate, synth: failed } : { synth: failed }; } };
 })();
