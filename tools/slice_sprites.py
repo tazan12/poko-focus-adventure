@@ -142,6 +142,10 @@ if __name__ == "__main__":
             if os.path.exists(os.path.join(BASE, f"_grid_{h}_{n}.png")): meta[f"{h}_{n}"] = slice_grid(f"{h}_{n}", r, c)
         if os.path.exists(os.path.join(BASE, f"_grid_{h}_faces.png")):
             split_faces(f"{h}_faces", 2, 3, ["happy", "surprised", "proud", "encourage", "excited", "sleepy"], os.path.join(os.path.dirname(BASE), "characters"), prefix=h)
+    # 모자 착용 그림: _grid_{hero}_hats.png (2×3, 탐험가·왕관·마법사·별빛·파티·잎사귀 순) → characters/{hero}_hat_{hat}.png
+    for h in ["poko", "bunny", "squirrel", "owl", "dino", "pig", "sheep", "tiger"]:
+        if os.path.exists(os.path.join(BASE, f"_grid_{h}_hats.png")):
+            split_faces(f"{h}_hats", 2, 3, ["explorer", "crown", "wizard", "star", "party", "leaf"], os.path.join(os.path.dirname(BASE), "characters"), prefix=f"{h}_hat")
     json.dump(meta, open(os.path.join(BASE, "sprites.json"), "w"), indent=1)
     print(json.dumps(meta))
     if os.path.exists(os.path.join(BASE, "_grid_poko_faces.png")):
