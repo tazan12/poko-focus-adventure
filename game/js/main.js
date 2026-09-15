@@ -10,7 +10,8 @@
     return [...CORE, ...rot, "stroop"];
   }
   const SESSION_ORDER = sessionOrder();
-  const DAILY_CAP_SEC = 25 * 60;
+  const DAILY_CAP_MIN = () => (Adaptive.grown ? 45 : 25);
+  const DAILY_CAP_SEC = { valueOf() { return DAILY_CAP_MIN() * 60; } };
   const MAX_STAGE = 10;
 
   const CHALLENGES = [
@@ -31,6 +32,32 @@
     { id: "star", name: "별빛 머리띠", price: 90 }, { id: "party", name: "파티 모자", price: 120 }, { id: "leaf", name: "잎사귀 화관", price: 80 },
   ];
   const $ = (id) => document.getElementById(id);
+  // ---------- 주인공 캐릭터 (포코 기본, 나머지는 코인으로 열기) ----------
+  const HEROES = [
+    { id: "poko", name: "포코", desc: "별빛 탐험대 대장 여우", price: 0 },
+    { id: "bunny", name: "토토", desc: "폴짝폴짝 잘 뛰는 토끼", price: 120 },
+    { id: "squirrel", name: "도토", desc: "재빠른 다람쥐", price: 160 },
+    { id: "owl", name: "부우", desc: "밤하늘을 나는 부엉이", price: 200 },
+  ];
+  // 표정 파일: 포코는 표정 10종, 다른 캐릭터는 6종(happy/surprised/proud/encourage/excited/sleepy) + 기본 이미지
+  const FACE_MAP = { neutral: null, alert: "surprised", thinking: null, sad: "encourage" };
+  const Hero = {
+    get id() { return Storage.hero(); },
+    face(state) {
+      const id = Storage.hero();
+      if (id === "poko") return `assets/characters/poko_${state}.png`;
+      const st = state in FACE_MAP ? FACE_MAP[state] : state;
+      return st ? `assets/characters/${id}_${st}.png` : `assets/characters/${id}.png`;
+    },
+    // 정적 이미지 표시용: 포코는 원본 비율, 다른 캐릭터는 정사각형 상자(contain)
+    aspect(state, pokoRatio) { return Storage.hero() === "poko" ? pokoRatio : "1 / 1"; },
+    apply() {
+      Sprite.hero = Storage.hero();
+      $("hud-poko").src = Hero.face("neutral");
+      document.querySelectorAll(".sprite[data-sprite]").forEach((el) => { if (!el._sprite) Sprite.detach(el); });
+    },
+  };
+
   function applyHat() {
     const d = Storage.load(); const id = d.hats && d.hats.equipped;
     document.querySelectorAll(".hat-slot").forEach((el) => { if (id) { el.src = `assets/hats/${id}.png`; el.hidden = false; } else el.hidden = true; });
@@ -66,10 +93,10 @@
   let pokoTimer = null;
   function pokoReact(state, ms = 900) {
     const el = $("hud-poko");
-    el.src = `assets/characters/poko_${state}.png`;
+    el.src = Hero.face(state);
     el.classList.remove("react"); void el.offsetWidth; el.classList.add("react");
     clearTimeout(pokoTimer);
-    pokoTimer = setTimeout(() => { el.src = "assets/characters/poko_neutral.png"; }, ms);
+    pokoTimer = setTimeout(() => { el.src = Hero.face("neutral"); }, ms);
   }
   function updateCombo() {
     const el = $("hud-combo");
@@ -168,7 +195,8 @@
       const p = Storage.load().profile || {}; age = p.age || null;
       $("profile-title").textContent = p.name ? "탐험대원 카드" : "탐험대원 카드 만들기";
       $("profile-name").value = p.name || "";
-      $("profile-ages").innerHTML = [6, 7, 8, 9, 10, 11, 12, 13].map((a) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${a}살</button>`).join("");
+      const AGES = [...[6, 7, 8, 9, 10, 11, 12, 13].map((a) => [a, `${a}살`]), [15, "14~17살"], [25, "어른"]];
+      $("profile-ages").innerHTML = AGES.map(([a, label]) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${label}</button>`).join("");
       $("profile-ages").querySelectorAll(".age-chip").forEach((b) => b.addEventListener("click", () => { age = +b.dataset.age; $("profile-ages").querySelectorAll(".age-chip").forEach((x) => x.classList.toggle("on", x === b)); Audio.tick(); }));
       const hasInviter = !!p.invitedBy;
       $("profile-invite-field").hidden = hasInviter;
@@ -190,6 +218,7 @@
       const res = Storage.setProfile({ name, age });
       if (!res.ok) { msg.textContent = `코인이 부족해요. 이름을 바꾸려면 ${Storage.RENAME_COST}코인이 필요해요.`; return; }
       Adaptive.age = age;
+      if (age >= 14) Storage.bumpLevels(3); else Adaptive.speed = false;
       const invite = ($("profile-invite").value || "").trim().toUpperCase() || null;
       const btn = $("btn-profile-save"); btn.disabled = true; msg.textContent = "저장 중…";
       let note = res.paid ? `이름을 바꿨어요 (−${res.paid}코인)` : `${name} 탐험대원, 환영해요!`;
@@ -347,12 +376,15 @@
     $("profile-chip-text").textContent = pf.name ? `${pf.name} · ${pf.age}살` : "이름 짓기 (무료)";
     $("btn-profile").classList.toggle("empty", !pf.name);
     $("home-subtitle").textContent = pf.name ? `${pf.name} 탐험대원, 오늘도 별을 모으러 가자!` : "집중의 힘으로 사라진 별을 되찾자!";
+    $("btn-report").textContent = Adaptive.grown ? "📊 내 기록" : "📊 보호자 리포트";
+    document.querySelector("#screen-report h2").textContent = Adaptive.grown ? "내 기록 리포트" : "보호자 리포트";
+    document.querySelector(".disclaimer").textContent = Adaptive.grown ? "하루 45분 이내로 가볍게 즐기는 걸 추천해요. 스피드 도전으로 코인을 2배로!" : "보호자와 함께 하루 25분 이내로 즐기는 걸 추천해요. 매일 조금씩이 가장 좋아요!";
     const mins = Math.round(Storage.todaySeconds() / 60);
     const totalStars = Object.values(d.stages || {}).reduce((a, w) => a + Object.values(w).reduce((x, y) => x + y, 0), 0);
     $("home-stats").innerHTML = `
       <span class="chip"><img src="assets/characters/coin.png" alt="">${d.coins}</span>
       <span class="chip">⭐ ${totalStars}/${Object.keys(TASKS).length * MAX_STAGE * 3}</span>
-      <span class="chip">⏱ ${mins}/25분</span>
+      <span class="chip">⏱ ${mins}/${DAILY_CAP_MIN()}분</span>
       <span class="chip">📅 ${d.sessions.length}일째</span>
       ${Storage.streak() >= 2 ? `<span class="chip hot">🔥 ${Storage.streak()}일 연속</span>` : ""}`;
     const ch = todayChallenge();
@@ -369,7 +401,7 @@
   $("btn-start-session").addEventListener("click", () => {
     Audio.unlock(); Audio.jingle();
     if (!(Storage.load().profile || {}).name) { Profile.open("session"); return; }
-    if (Storage.todaySeconds() >= DAILY_CAP_SEC) { const n = $("home-notice"); n.textContent = "오늘 훈련 시간(25분)을 다 채웠어요! 내일 다시 만나요 🌙"; n.hidden = false; return; }
+    if (Storage.todaySeconds() >= DAILY_CAP_SEC) { const n = $("home-notice"); n.textContent = `오늘 놀이 시간(${DAILY_CAP_MIN()}분)을 다 채웠어요! 내일 다시 만나요 🌙`; n.hidden = false; return; }
     sessionMode = "session"; queue = sessionOrder(); sessionCoins = 0; sessionResults = []; forcedLevel = null;
     startNextMission();
   });
@@ -381,9 +413,23 @@
   function renderShop() {
     const d = Storage.load(); const h = d.hats || { owned: [], equipped: null };
     $("shop-coins").textContent = d.coins;
-    const pv = $("shop-poko"); if (!pv._sprite) Sprite.play(pv, "poko_idle", { fps: 4, charHeight: "140px" });
+    const pv = $("shop-poko"); if (!pv._sprite || pv.dataset.sprite !== Sprite.resolve("poko_idle")) Sprite.play(pv, "poko_idle", { fps: 4, charHeight: "140px" });
     const eqName = h.equipped ? HATS.find((x) => x.id === h.equipped).name : null;
-    $("shop-preview-text").textContent = eqName ? `${eqName} 착용 중!` : "모자를 골라 보세요";
+    const heroName = HEROES.find((x) => x.id === Storage.hero()).name;
+    $("shop-preview-text").textContent = `${heroName}${eqName ? ` · ${eqName} 착용 중!` : " (모자를 골라 보세요)"}`;
+    const hs = d.heroes || { owned: ["poko"], selected: "poko" };
+    $("hero-grid").innerHTML = HEROES.map((x, i) => {
+      const owned = hs.owned.includes(x.id) || d.tester, sel = hs.selected === x.id;
+      return `<button class="hat-card hero-card ${sel ? "equipped" : ""} ${!owned && d.coins < x.price ? "poor" : ""}" data-hero="${x.id}" style="--i:${i}">
+        <img src="assets/characters/${x.id === "poko" ? "poko_happy" : x.id}.png" alt=""><b>${x.name}</b><small>${x.desc}</small>
+        <span>${sel ? "함께 모험 중" : owned ? "고르기" : `🪙 ${x.price}`}</span></button>`; }).join("");
+    $("hero-grid").querySelectorAll(".hero-card").forEach((b) => b.addEventListener("click", () => {
+      const id = b.dataset.hero; const dd = Storage.load(); const hero = HEROES.find((x) => x.id === id);
+      if (dd.heroes.owned.includes(id) || dd.tester) { Storage.selectHero(id); Audio.jingle(); }
+      else if (Storage.buyHero(id, hero.price)) { Audio.fanfare(); Fx.confetti($("shop-confetti")); }
+      else { Audio.wrong(); $("shop-msg").textContent = `코인이 ${hero.price - dd.coins}개 더 필요해요. 미션에서 모아 보자!`; setTimeout(() => { $("shop-msg").textContent = ""; }, 2500); return; }
+      Hero.apply(); renderShop(); applyHat();
+    }));
     $("shop-grid").innerHTML = HATS.map((x, i) => {
       const owned = h.owned.includes(x.id), eq = h.equipped === x.id;
       return `<button class="hat-card ${eq ? "equipped" : ""} ${!owned && d.coins < x.price ? "poor" : ""}" data-id="${x.id}" style="--i:${i}">
@@ -450,7 +496,13 @@
     }));
     const tip = unlocked === MAX_STAGE ? "마지막 스테이지까지 열렸어! 별 3개를 다 모아 보자." : `스테이지 ${unlocked}에서 별 2개 이상을 받으면 다음 스테이지가 열려.`;
     $("stages-tip").textContent = tip;
-    $("stages-poko").src = unlocked >= 5 ? "assets/characters/poko_excited.png" : "assets/characters/poko_thinking.png";
+    // 14살 이상: 재미 위주 — 스피드 도전(시간 창 75%, 코인 2배) 토글
+    let sp = $("stage-speed");
+    if (!sp) { sp = document.createElement("button"); sp.id = "stage-speed"; sp.className = "btn btn-glass stage-speed"; document.querySelector(".stages-guide").appendChild(sp); sp.addEventListener("click", () => { Adaptive.speed = !Adaptive.speed; Audio.tick(); openStages(stageTask.id); }); }
+    sp.hidden = !Adaptive.grown;
+    sp.classList.toggle("on", Adaptive.speed);
+    sp.innerHTML = Adaptive.speed ? "⚡ 스피드 도전 켜짐 · 코인 2배 <small>(끄기)</small>" : "⚡ 스피드 도전 <small>시간 창 75% · 코인 2배</small>";
+    $("stages-poko").src = unlocked >= 5 ? Hero.face("excited") : Hero.face("thinking");
     show("stages");
   }
   $("btn-stages-back").addEventListener("click", () => { renderWorlds(); show("select"); });
@@ -531,7 +583,8 @@
     r.newLevel = newLevel; r.stars = stars;
     if (!forcedLevel) Storage.setLevel(r.task, newLevel);
     Storage.addStars(stars);
-    const earned = Math.max(0, sessionCoins - missionCoinBase);
+    let earned = Math.max(0, sessionCoins - missionCoinBase);
+    if (Adaptive.speed) { earned *= 2; sessionCoins += earned / 2; r.speed = true; }
     Storage.addCoins(earned);
     Storage.addDailySeconds(r.durationSec);
     if (Adaptive.age) { r.age = Adaptive.age; r.ageBand = Online.ageBand(Adaptive.age); }
@@ -556,13 +609,13 @@
     const rp = $("reward-poko");
     Sprite.detach(rp); rp.className = "poko sprite-box";
     if (stars === 3 || (boss && boss.win)) Sprite.play(rp, "poko_dance", { fps: 5, charHeight: "190px" });
-    else if (stars === 2) { rp.classList.add("static"); rp.style.backgroundImage = 'url("assets/characters/poko_proud.png")'; rp.style.aspectRatio = "361/512"; rp.style.height = "190px"; }
-    else { rp.classList.add("static"); rp.style.backgroundImage = 'url("assets/characters/poko_encourage.png")'; rp.style.aspectRatio = "508/512"; rp.style.height = "190px"; }
+    else if (stars === 2) { rp.classList.add("static"); rp.style.backgroundImage = `url("${Hero.face("proud")}")`; rp.style.aspectRatio = Hero.aspect("proud", "361/512"); rp.style.height = "190px"; }
+    else { rp.classList.add("static"); rp.style.backgroundImage = `url("${Hero.face("encourage")}")`; rp.style.aspectRatio = Hero.aspect("encourage", "508/512"); rp.style.height = "190px"; }
     applyHat();
     $("reward-title").textContent = `${currentTask.world} 스테이지 ${r.level} ${stars >= 2 ? "클리어!" : "완주!"}`;
     $("reward-msg").innerHTML = `${encouragement}<br>${stageMsg}`;
     $("reward-stars").innerHTML = Array.from({ length: 3 }, (_, i) => `<img class="${i < stars ? "" : "dim"}" src="assets/characters/coin.png" alt="⭐">`).join("");
-    $("reward-stats").innerHTML = [...currentTask.summary(r), `최고 콤보 ${bestCombo}`].map((s) => `<span class="chip">${s}</span>`).join("");
+    $("reward-stats").innerHTML = [...currentTask.summary(r), `최고 콤보 ${bestCombo}`, ...(r.speed ? ["⚡ 스피드 도전 코인 2배"] : [])].map((s) => `<span class="chip">${s}</span>`).join("");
     const bossMsg = boss ? (boss.win ? (boss.kind === "king" ? "👑 심술이 대왕을 물리쳤다! 이 세계의 별빛이 돌아왔어!" : "👺 심술이 대장을 물리쳤어!") : "심술이가 도망갔어… 다음엔 꼭 물리치자!") : "";
     $("reward-boss").innerHTML = (goal ? `<div class="goal-result ${goalOk ? "ok" : ""}">🎯 ${goal.text} — ${goalOk ? "달성! +20 코인" : "다음에 도전"}</div>` : "") + (bossMsg ? `<div class="boss-result ${boss.win ? "win" : ""}">${bossMsg}</div>` : "");
     $("reward-sticker").innerHTML = (newBadge ? `<img src="assets/stickers/boss.png" alt=""><span>보스 배지 획득!</span>` : "") + (newSticker ? `<img src="${currentTask.sticker}" alt=""><span>NEW 스티커!</span>` : "");
@@ -602,7 +655,7 @@
       <div class="region ${doneToday.has(t.id) ? "lit" : ""}" style="background-image:url('${t.bg}');--i:${i}"><span>${t.world}</span></div>`).join("");
     const ep = $("end-poko");
     Sprite.detach(ep); ep.className = "poko sprite-box";
-    if (sleepy) { ep.classList.add("static"); ep.style.backgroundImage = 'url("assets/characters/poko_sleepy.png")'; ep.style.aspectRatio = "433/512"; ep.style.height = "170px"; }
+    if (sleepy) { ep.classList.add("static"); ep.style.backgroundImage = `url("${Hero.face("sleepy")}")`; ep.style.aspectRatio = Hero.aspect("sleepy", "433/512"); ep.style.height = "170px"; }
     else Sprite.play(ep, "poko_dance", { fps: 5, charHeight: "170px" });
     applyHat();
     show("end");
@@ -720,6 +773,7 @@
   Object.values(TASKS).forEach((t) => { const i = new Image(); i.src = t.bg; });
 
   ["spiky_king", "tent", "fruit", "bell", "bunny", "squirrel", "owl"].forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
+  if (Storage.hero() !== "poko") ["happy", "surprised", "proud", "encourage", "excited", "sleepy"].forEach((st) => { const i = new Image(); i.src = Hero.face(st); });
   applyHat();
   // 초대 링크(?invite=CODE)로 들어오면 코드를 기억해 두고 주소를 정리한다
   try {
@@ -727,6 +781,7 @@
     if (code) { const d = Storage.load(); if (!d.profile.invitedBy) d.profile.pendingInvite = code.toUpperCase().slice(0, 6); Storage.save(d); history.replaceState(null, "", location.pathname); }
   } catch (e) { /* ignore */ }
   Adaptive.age = (Storage.load().profile || {}).age || null;
+  Hero.apply();
   renderHome();
   Home.start();
   // 지난번에 못 보낸 점수 전송 + 초대 성공 보상

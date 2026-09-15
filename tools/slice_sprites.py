@@ -111,7 +111,7 @@ def slice_grid(name, rows, cols, frame_h=256):
     return meta
 
 
-def split_faces(name, rows, cols, names, out_dir, size=512):
+def split_faces(name, rows, cols, names, out_dir, size=512, prefix="poko"):
     """표정 시트를 개별 PNG로 분리 (정적 이미지용)"""
     src = os.path.join(BASE, f"_grid_{name}.png")
     im = Image.open(src).convert("RGBA")
@@ -126,7 +126,7 @@ def split_faces(name, rows, cols, names, out_dir, size=512):
             f = Image.fromarray(cell); f = f.crop(f.getchannel("A").getbbox())
             w, h = f.size; sc = size / max(w, h)
             f = f.resize((max(1, int(w * sc)), max(1, int(h * sc))), Image.LANCZOS)
-            dst = os.path.join(out_dir, f"poko_{names[k]}.png"); f.save(dst, optimize=True)
+            dst = os.path.join(out_dir, f"{prefix}_{names[k]}.png"); f.save(dst, optimize=True)
             print(f"  {os.path.basename(dst)} {f.size}")
             k += 1
 
@@ -137,6 +137,11 @@ if __name__ == "__main__":
     for name, r, c in jobs:
         if os.path.exists(os.path.join(BASE, f"_grid_{name}.png")):
             meta[name] = slice_grid(name, r, c)
+    for h in ["bunny", "squirrel", "owl"]:
+        for n, r, c in [("run", 2, 3), ("jump", 2, 3), ("idle", 2, 2), ("duck", 2, 2)]:
+            if os.path.exists(os.path.join(BASE, f"_grid_{h}_{n}.png")): meta[f"{h}_{n}"] = slice_grid(f"{h}_{n}", r, c)
+        if os.path.exists(os.path.join(BASE, f"_grid_{h}_faces.png")):
+            split_faces(f"{h}_faces", 2, 3, ["happy", "surprised", "proud", "encourage", "excited", "sleepy"], os.path.join(os.path.dirname(BASE), "characters"), prefix=h)
     json.dump(meta, open(os.path.join(BASE, "sprites.json"), "w"), indent=1)
     print(json.dumps(meta))
     if os.path.exists(os.path.join(BASE, "_grid_poko_faces.png")):

@@ -12,6 +12,19 @@ const Sprite = (() => {
     poko_wave: { frames: 4, w: 214, h: 256, charRatio: 0.941 },
     poko_duck: { frames: 4, w: 278, h: 256, charRatio: 0.934 },
     spiky_run: { frames: 4, w: 271, h: 256, charRatio: 0.957 },
+    // 선택 가능한 주인공(토토·도토·부우) — Sprite.hero 로 poko_* 이름이 여기로 해석된다
+    bunny_run: { frames: 6, w: 300, h: 256, charRatio: 0.852 },
+    bunny_jump: { frames: 6, w: 246, h: 256, charRatio: 0.848 },
+    bunny_idle: { frames: 4, w: 308, h: 256, charRatio: 0.859 },
+    bunny_duck: { frames: 4, w: 303, h: 256, charRatio: 0.945 },
+    squirrel_run: { frames: 6, w: 396, h: 256, charRatio: 0.879 },
+    squirrel_jump: { frames: 6, w: 260, h: 256, charRatio: 0.855 },
+    squirrel_idle: { frames: 4, w: 265, h: 256, charRatio: 0.914 },
+    squirrel_duck: { frames: 4, w: 271, h: 256, charRatio: 0.879 },
+    owl_run: { frames: 6, w: 348, h: 256, charRatio: 0.953 },
+    owl_jump: { frames: 6, w: 265, h: 256, charRatio: 0.941 },
+    owl_idle: { frames: 4, w: 221, h: 256, charRatio: 0.93 },
+    owl_duck: { frames: 4, w: 283, h: 256, charRatio: 0.953 },
   };
   // 프레임별 머리 앵커 [x, y] (프레임 폭·높이 대비 비율). 모자는 이 점에 캐릭터 키 기준 크기로 얹힌다.
   const HEAD = {
@@ -21,12 +34,30 @@ const Sprite = (() => {
     poko_jump: [[0.62, 0.3], [0.62, 0.2], [0.6, 0.12], [0.65, 0.15], [0.66, 0.3], [0.65, 0.3]],
     poko_run: [[0.63, 0.1], [0.63, 0.12], [0.63, 0.1], [0.63, 0.1], [0.63, 0.12], [0.63, 0.1]],
     poko_duck: [[0.6, 0.12], [0.6, 0.42], [0.6, 0.4], [0.6, 0.12]],
+    bunny_idle: [[0.5, 0.1], [0.5, 0.14], [0.5, 0.08], [0.5, 0.1]], bunny_run: [[0.62, 0.14], [0.6, 0.12], [0.62, 0.12], [0.62, 0.14], [0.62, 0.14], [0.62, 0.14]],
+    bunny_jump: [[0.6, 0.14], [0.58, 0.1], [0.58, 0.08], [0.6, 0.08], [0.6, 0.12], [0.6, 0.14]], bunny_duck: [[0.55, 0.1], [0.62, 0.42], [0.62, 0.42], [0.55, 0.1]],
+    squirrel_idle: [[0.42, 0.14], [0.42, 0.16], [0.42, 0.12], [0.42, 0.14]], squirrel_run: [[0.7, 0.14], [0.7, 0.14], [0.72, 0.16], [0.7, 0.14], [0.7, 0.14], [0.7, 0.14]],
+    squirrel_jump: [[0.62, 0.16], [0.6, 0.12], [0.6, 0.1], [0.6, 0.12], [0.62, 0.16], [0.62, 0.16]], squirrel_duck: [[0.62, 0.14], [0.6, 0.38], [0.6, 0.38], [0.62, 0.14]],
+    owl_idle: [[0.5, 0.08], [0.5, 0.1], [0.5, 0.06], [0.5, 0.08]], owl_run: [[0.62, 0.12], [0.62, 0.14], [0.62, 0.16], [0.62, 0.14], [0.62, 0.12], [0.62, 0.14]],
+    owl_jump: [[0.58, 0.14], [0.58, 0.1], [0.58, 0.08], [0.58, 0.08], [0.58, 0.12], [0.58, 0.14]], owl_duck: [[0.5, 0.08], [0.5, 0.4], [0.5, 0.4], [0.5, 0.08]],
   };
   const active = new Set();
   let paused = false;
+  let hero = "poko";
+  // 선택한 주인공에 맞춰 시트 이름을 바꾼다. 없는 동작은 비슷한 시트로 대체(손흔들기→서기, 춤→점프 반복)
+  const FALLBACK = { wave: "idle", dance: "jump" };
+  function resolve(name) {
+    if (hero === "poko" || !name.startsWith("poko_")) return name;
+    const suffix = name.slice(5);
+    const alt = `${hero}_${suffix}`;
+    if (META[alt]) return alt;
+    const fb = FALLBACK[suffix] && `${hero}_${FALLBACK[suffix]}`;
+    return fb && META[fb] ? fb : name;
+  }
 
   // 요소에 시트를 붙인다. charHeight(px 또는 CSS 길이)는 "캐릭터 실제 높이" 기준이라 시트가 바뀌어도 크기가 같게 보인다.
   function attach(el, name, { charHeight } = {}) {
+    name = resolve(name);
     const m = META[name];
     el.classList.add("sprite");
     el.dataset.sprite = name;
@@ -52,6 +83,7 @@ const Sprite = (() => {
   // arc: 프레임 진행에 맞춰 포물선(translateY)을 그린다 — 점프 시트가 바닥 정렬이라 궤적은 코드로 만든다.
   function play(el, name, { fps = 10, loop = true, onEnd = null, charHeight, arc = 0 } = {}) {
     stop(el);
+    name = resolve(name);
     if (el.dataset.sprite !== name) attach(el, name, { charHeight });
     const m = META[name];
     let i = 0;
@@ -87,7 +119,8 @@ const Sprite = (() => {
   }
 
   return {
-    attach, play, stop, stopAll, detach, META,
+    attach, play, stop, stopAll, detach, META, resolve,
     get paused() { return paused; }, set paused(v) { paused = v; },
+    get hero() { return hero; }, set hero(v) { hero = v || "poko"; },
   };
 })();

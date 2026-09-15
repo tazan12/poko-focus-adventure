@@ -9,7 +9,7 @@ const TaskNBack = {
   icon: "assets/characters/coin.png",
   bg: "assets/bg/pond.jpg",
   sticker: "assets/stickers/pond.png",
-  desc: "반딧불이 앉은 연잎을 기억하고, 같은 연잎에 또 앉으면 포코가 폴짝!",
+  desc: "반딧불이 앉은 연잎을 기억하고, 같은 연잎에 또 앉으면 폴짝 뛰어요!",
   story: "이 연못의 반딧불은 같은 연잎에 두 번 앉을 때만 빛을 남겨. 어느 연잎에 앉았는지 잘 기억했다가 알려 줘!",
 
   levelParams(level) {
