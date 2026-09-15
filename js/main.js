@@ -86,6 +86,7 @@
     if (name !== "reward") Sprite.stop($("reward-poko"));
     if (name !== "end") Sprite.stop($("end-poko"));
     if (name !== "shop") Sprite.stop($("shop-poko"));
+    if (name !== "fail") Sprite.stop($("fail-poko"));
     if (name !== "rank") Rank.stop();
   }
   document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.go === "home") renderHome(); show(b.dataset.go); }));
@@ -120,15 +121,39 @@
   }
 
   // ---------- 일시정지 / 그만하기 ----------
-  let paused = false, aborted = false, pausedMs = 0, pauseStart = 0;
+  let paused = false, aborted = false, failed = false, pausedMs = 0, pauseStart = 0;
   const waits = new Set();
   class AbortError extends Error { constructor() { super("aborted"); this.name = "AbortError"; } }
+  // 하트: 실수(부딪힘·오답)마다 하나씩 줄고 0이 되면 미션이 중단된다 → "무조건 완주"가 아니라 긴장감이 생긴다.
+  //   나이대별: 6~8살 5개, 9~13살 4개, 14살+ 3개. 놓침(soft)은 하트를 깎지 않는다. 보호막 아이템이 막으면 유지.
+  class FailError extends AbortError { constructor() { super(); this.name = "FailError"; } }
+  let lives = 0, maxLives = 0;
+  function livesFor() { const dbg = +(localStorage.getItem("poko_debug_lives") || 0); if (dbg) return dbg; const a = Adaptive.age || 9; return a >= 14 ? 3 : a <= 8 ? 5 : 4; }
+  function renderLives() {
+    $("hud-lives").innerHTML = Array.from({ length: maxLives }, (_, i) => `<i class="${i < lives ? "on" : "off"}"></i>`).join("");
+  }
+  function loseLife(el) {
+    if (lives <= 0) return;
+    lives--; renderLives();
+    const hl = $("hud-lives"); hl.classList.remove("shake"); void hl.offsetWidth; hl.classList.add("shake");
+    if (lives === 1) { const c = Fx.center(el); Fx.popup(c.x, c.y - 100, "하트 하나 남았어! 집중!", "bad"); }
+    if (lives <= 0) failMission();
+  }
+  function failMission() {
+    // 진행 중인 미션의 대기(wait)를 모두 끊고 실패 화면으로
+    failed = true;
+    for (const w of waits) { clearTimeout(w.timer); w.rej(new FailError()); }
+    waits.clear();
+    paused = false; Sprite.paused = false; Music.duck(false);
+    $("screen-task").classList.remove("paused"); $("pause-overlay").hidden = true;
+  }
   function wait(ms) {
     return new Promise((res, rej) => {
       const w = { remaining: ms, start: 0, timer: null, res, rej };
       w.arm = () => { w.start = performance.now(); w.timer = setTimeout(() => { waits.delete(w); res(); }, w.remaining); };
       waits.add(w);
       if (aborted) { waits.delete(w); rej(new AbortError()); return; }
+      if (failed) { waits.delete(w); rej(new FailError()); return; }
       if (!paused) w.arm();
     });
   }
@@ -189,6 +214,7 @@
       Fx.popup(c.x, c.y - 40, msg, soft ? "calm" : "bad");
       ctx.flash(soft ? "" : "bad");
       pokoReact(soft ? "encourage" : "surprised");
+      if (!soft && !saved) loseLife(el);
     },
     between: () => StageFX.between(ctx),
     bonusCoins(n) { sessionCoins += n; $("hud-coins").textContent = sessionCoins; Audio.coin(); },
@@ -559,7 +585,8 @@
     missionCoinBase = sessionCoins;
     $("screen-task").style.backgroundImage = `url('${currentTask.bg}')`;
     combo = 0; bestCombo = 0; updateCombo();
-    aborted = false; pausedMs = 0;
+    aborted = false; failed = false; pausedMs = 0;
+    maxLives = livesFor(); lives = maxLives; renderLives();
     ctx.setProgress(0);
     show("task");
     ctx.controls.innerHTML = "";
@@ -583,10 +610,35 @@
       pressHandlers.clear(); keyHandlers.clear(); Sprite.stopAll();
       ctx.stage.innerHTML = ""; ctx.controls.innerHTML = "";
       Storage.addDailySeconds(Math.round((performance.now() - t0 - pausedMs) / 1000));
+      if (e instanceof FailError) { showFail(level, Math.round((performance.now() - t0 - pausedMs) / 1000)); return; }
       queue = []; forcedLevel = null;
       renderHome(); show("home");
     }
   });
+
+  // ---------- 실패 화면 ----------
+  // 하트가 다 떨어지면: 이 미션의 코인은 절반만 남고, 별·스티커·목표 보너스는 없다. 세션 적응 레벨은 한 단계 내려간다.
+  function showFail(level, durationSec) {
+    const earned = Math.max(0, sessionCoins - missionCoinBase);
+    const keep = Math.floor(earned / 2);
+    sessionCoins = missionCoinBase + keep; Storage.addCoins(keep);
+    if (!forcedLevel) Storage.setLevel(currentTask.id, Math.max(1, level - 1));
+    Storage.addMissionResult({ task: currentTask.id, level, failed: true, accuracy: 0, metrics: {}, trials: 0, durationSec, date: new Date().toISOString(), test: Adaptive.quick });
+    const fp = $("fail-poko"); Sprite.detach(fp); fp.className = "poko sprite-box";
+    if (Hero.wearing()) Sprite.play(fp, "poko_idle", { fps: 3, charHeight: "170px" });
+    else { fp.classList.add("static"); fp.style.backgroundImage = `url("${Hero.face("sad")}")`; fp.style.aspectRatio = Hero.aspect("sad", "1 / 1"); fp.style.height = "170px"; }
+    $("fail-title").textContent = ["앗, 하트가 다 떨어졌어!", "심술이한테 잡혔어…", "이번엔 여기까지!"][Math.floor(Math.random() * 3)];
+    $("fail-msg").innerHTML = `${currentTask.world} 스테이지 ${level}은(는) 다음에 다시 도전하자.<br>실수해도 괜찮아 — 조금만 더 집중하면 돼!`;
+    $("fail-stats").innerHTML = [`모은 코인 ${keep}개 (절반)`, `최고 콤보 ${bestCombo}`].map((x) => `<span class="chip">${x}</span>`).join("");
+    Audio.wrong();
+    show("fail");
+    Music.play("home");
+  }
+  $("btn-fail-retry").addEventListener("click", () => {
+    Audio.unlock(); sessionMode = "free"; queue = [currentTask.id]; forcedLevel = forcedLevel || levelFor(currentTask); sessionCoins = 0; sessionResults = [];
+    startNextMission();
+  });
+  $("btn-fail-map").addEventListener("click", () => { queue = []; forcedLevel = null; if (currentTask) openStages(currentTask.id); else { renderHome(); show("home"); } });
 
   // ---------- 보상 ----------
   function finishMission(r) {
@@ -729,13 +781,16 @@
   };
 
   function renderReport() {
+    // 하트 소진으로 중단된 미션은 지표 집계에서 뺀다 (기록 수에는 포함)
     const d = Storage.load();
-    const all = d.sessions.flatMap((s) => s.missions).filter((m) => !m.test);
+    const allRaw = d.sessions.flatMap((s) => s.missions).filter((m) => !m.test);
+    const failedN = allRaw.filter((m) => m.failed).length;
+    const all = allRaw.filter((m) => !m.failed);
     $("btn-tester").textContent = d.tester ? "🧪 테스터 모드 켜짐 (끄기)" : "🧪 테스터 모드 (전체 해금·짧은 미션)";
     if (!all.length) { $("report-body").innerHTML = "<p style='text-align:center'>아직 기록이 없어요. 미션을 먼저 해보세요!</p>"; return; }
     const totalMin = Math.round(all.reduce((a, m) => a + (m.durationSec || 0), 0) / 60);
     const totalStars = Object.values(d.stages || {}).reduce((a, w) => a + Object.values(w).reduce((x, y) => x + y, 0), 0);
-    const tiles = [["훈련한 날", `${d.sessions.length}일`], ["미션", `${all.length}회`], ["놀이 시간", `${totalMin}분`], ["모은 별", `${totalStars}개`], ["연속 출석", `${Storage.streak()}일`]];
+    const tiles = [["훈련한 날", `${d.sessions.length}일`], ["미션", `${all.length}회${failedN ? ` <small>(중단 ${failedN})</small>` : ""}`], ["놀이 시간", `${totalMin}분`], ["모은 별", `${totalStars}개`], ["연속 출석", `${Storage.streak()}일`]];
     let html = `<div class="tiles">${tiles.map(([k, v]) => `<div class="tile"><b>${v}</b><small>${k}</small></div>`).join("")}</div>`;
     // 힘 레이더: 세계별 최근 3회 평균 정확도
     const radarItems = Object.values(TASKS).map((t) => { const rows = all.filter((m) => m.task === t.id).slice(-3); return { label: t.short, v: rows.length ? rows.reduce((a, m) => a + m.accuracy, 0) / rows.length : 0 }; });

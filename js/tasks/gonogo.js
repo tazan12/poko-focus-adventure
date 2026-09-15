@@ -7,6 +7,8 @@
 //   꿀벌(7+)     → 숙이기(↓/버튼)   : 머리 위로 지나가게 피한다
 //   심술이       → 아무것도 안 함    : 혀를 내밀며 옆으로 스쳐 지나간다 (No-Go)
 //   응답 창 = 상대가 주인공 앞에 도착할 때까지의 시간. 도착 후엔 각자 "지나가는" 모션을 보여준다.
+//   점프·숙이기는 타이밍 동작: 장애물이 가까이 왔을 때(응답 창의 마지막 45%, 장애물이 반짝이며 "지금!")만 성공.
+//   너무 일찍 뛰면 먼저 착지해 통나무에 걸려 넘어지고, 너무 일찍 숙이면 일어나다 꿀벌에 부딪힌다 → 하트 -1.
 const TaskGoNoGo = {
   id: "gonogo",
   name: "반짝 숲 달리기",
@@ -48,9 +50,9 @@ const TaskGoNoGo = {
         ? "<b>별별이</b>가 달려오면 <b>잡기!</b> <b>심술이</b>는 참기!<br>이 숲은 마법에 걸려서, 달리다가 <b>규칙이 뒤집힐 수도</b> 있어."
         : "친구들이 한 명씩 <b>달려와요</b>. <b>별별이</b>가 오면 <b>잡기!</b>(스페이스 또는 화면 터치)<br><b>심술이</b>가 오면 <b>아무것도 누르지 말기</b> — 가만히 있으면 옆으로 스쳐 지나가요!")
         + (t.friend ? `<br>🐾 <b>${this.NAMES[f]}</b>도 같이 달려와요. ${this.NAMES[f]}도 잡기!` : "")
-        + (t.log ? "<br>🪵 <b>통나무</b>가 굴러오면 <b>점프!</b>(↑ 키 또는 점프 버튼)로 뛰어넘어요." : "")
+        + (t.log ? "<br>🪵 <b>통나무</b>가 굴러오면 <b>점프!</b>(↑ 키 또는 점프 버튼)로 뛰어넘어요. 통나무가 <b>반짝이며 '지금!'</b> 할 때 뛰어야 해요 — 너무 일찍 뛰면 넘어져요!" : "")
         + (t.fog ? "<br>🌫 안개 때문에 <b>가까이 와야</b> 또렷하게 보여요." : "")
-        + (t.bee ? "<br>🐝 <b>꿀벌</b>이 날아오면 <b>숙이기!</b>(↓ 키 또는 숙이기 버튼)" : "")
+        + (t.bee ? "<br>🐝 <b>꿀벌</b>이 날아오면 <b>숙이기!</b>(↓ 키 또는 숙이기 버튼) — 이것도 <b>'지금!'</b> 타이밍에!" : "")
         + (t.burst ? "<br>⚡ 중간에 <b>가속 구간</b>이 있어요!" : ""),
       demo: `
         <div class="demo-item go"><img src="assets/characters/star_go.png" alt="">잡기!</div>
@@ -106,6 +108,8 @@ const TaskGoNoGo = {
     const duck = () => Sprite.play(poko, "poko_duck", { fps: 10, loop: false, charHeight: CHAR_H, onEnd: runAnim });
     const lean = () => { poko.classList.remove("lean"); void poko.offsetWidth; poko.classList.add("lean"); setTimeout(() => poko.classList.remove("lean"), 500); };
     const oops = () => { poko.classList.add("oops"); setTimeout(() => poko.classList.remove("oops"), 500); };
+    const trip = () => { poko.classList.remove("trip"); void poko.offsetWidth; poko.classList.add("trip"); setTimeout(() => poko.classList.remove("trip"), 950); };
+    const ZONE = 0.55; // 응답 창의 이 비율 이후부터 "뛰어넘기/숙이기 구간"
 
     // 상대가 주인공 앞에 도착하는 시점(전체 이동 구간 대비 비율)을 실제 배치로 계산 → 응답 창 = 도착까지의 시간
     const passFrac = () => {
@@ -115,7 +119,7 @@ const TaskGoNoGo = {
       const startX = R.width, endX = -R.width * 0.25; // left: 100% → -25%
       return Math.min(0.85, Math.max(0.5, (startX - (pokoCenter - critterW / 2)) / (startX - endX)));
     };
-    const bonk = (wrap, el, msg) => { wrap.classList.add("stop"); el.classList.add("bonk"); setTimeout(() => el.classList.add("hide"), 450); oops(); ctx.miss(el, { msg }); };
+    const bonk = (wrap, el, msg, fall) => { wrap.classList.add("stop"); el.classList.add("bonk"); setTimeout(() => el.classList.add("hide"), 450); if (fall) trip(); else oops(); ctx.miss(el, { msg }); };
 
     // 현재 시행 상태
     let cur = null; // { t, wrap, el, pressed, onset, rt, window }
@@ -125,6 +129,8 @@ const TaskGoNoGo = {
       cur.rt = Math.round(performance.now() - cur.onset);
       const { t, wrap, el } = cur;
       if (action === "catch") catchAnim(); else if (action === "jump") jump(); else duck();
+      // 타이밍 동작(점프·숙이기)이 너무 일찍 나오면 동작만 하고 결과는 장애물 도착 때 판정한다 (넘어짐)
+      if (t.go && (t.action === "jump" || t.action === "duck") && action === t.action && cur.rt < cur.window * ZONE) { cur.early = true; return; }
       if (t.go && t.action === action) {
         if (action === "catch") {
           // 잡기 적중: 상대가 주인공 품으로 빨려 들어온 뒤 반짝 터진다
@@ -190,15 +196,22 @@ const TaskGoNoGo = {
         else if (t.kind === "star") Sprite.play(el, "star_idle", { fps: 6 });
         else el.style.backgroundImage = `url("assets/characters/${IMG[t.kind]}.png")`;
         lane.appendChild(wrap);
-        cur = { t, wrap, el, pressed: null, onset: performance.now(), rt: null, window: win };
+        cur = { t, wrap, el, pressed: null, onset: performance.now(), rt: null, window: win, early: false };
+        const readyTimer = (t.kind === "log" || t.kind === "bee") ? setTimeout(() => { if (wrap.isConnected && !wrap.classList.contains("stop")) wrap.classList.add("ready"); }, Math.round(win * ZONE)) : null;
         await ctx.wait(win);
+        if (readyTimer) clearTimeout(readyTimer);
+        wrap.classList.remove("ready");
         const done = cur; cur = null;
 
         let type;
-        if (t.go) type = !done.pressed ? "omission" : done.pressed === t.action ? "hit" : "wrong";
+        if (t.go) type = !done.pressed ? "omission" : done.early ? "early" : done.pressed === t.action ? "hit" : "wrong";
         else type = done.pressed ? "commission" : "correct_rejection";
+        if (type === "early") {
+          // 너무 일찍 뛰거나 숙임 → 장애물에 걸려 넘어진다
+          bonk(wrap, el, t.kind === "log" ? "너무 일찍 뛰었어! 통나무에 걸렸다" : "너무 일찍 숙였어! 꿀벌에 부딪혔다", true);
+        }
         if (type === "omission") {
-          if (t.kind === "bee" || t.kind === "log") bonk(wrap, el, `앗, ${N[t.kind]}!`);
+          if (t.kind === "bee" || t.kind === "log") bonk(wrap, el, `앗, ${N[t.kind]}!`, t.kind === "log");
           else { wrap.classList.add("passed"); el.classList.add("flyaway"); ctx.miss(el, { msg: "놓쳤다…", soft: true }); }
         }
         if (type === "correct_rejection") {
@@ -225,7 +238,7 @@ const TaskGoNoGo = {
     const nogoN = log.length - goN;
     const omission = log.filter((x) => x.type === "omission").length;
     const commission = log.filter((x) => x.type === "commission").length;
-    const wrong = log.filter((x) => x.type === "wrong").length;
+    const wrong = log.filter((x) => x.type === "wrong" || x.type === "early").length;
     const rts = hits.map((x) => x.rt);
     return {
       task: this.id, level,
