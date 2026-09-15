@@ -883,3 +883,5 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 .runner-critter.ready .critter { filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd24d) brightness(1.15); }
 .runner-critter.ready::after { content: "지금!"; position: absolute; left: 50%; top: -28%; transform: translateX(-50%); font-family: "Jua", sans-serif; color: #ffd24d; font-size: 1.1rem; text-shadow: 0 2px 6px rgba(0,0,0,0.6); animation: bump 0.5s ease-out infinite alternate; }
 @media (max-width: 600px) { .hud-lives i { width: 13px; height: 13px; } .runner-critter.ready::after { font-size: 0.9rem; } }
+.runner-poko.land { animation: land 0.26s ease-out; }
+@keyframes land { 30% { transform: scaleY(0.88) scaleX(1.08); } 100% { transform: none; } }
