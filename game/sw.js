@@ -1,5 +1,5 @@
 // 서비스 워커 — 앱 셸과 에셋을 캐시해 오프라인/홈 화면 앱으로 동작 (캐시 이름을 바꾸면 새 버전 배포)
-const CACHE = "poko-focus-v202609152337";
+const CACHE = "poko-focus-v202609152359";
 const ASSETS = [
  "assets/bg/attic.jpg",
  "assets/bg/camp.jpg",
@@ -21,9 +21,9 @@ const ASSETS = [
  "assets/characters/bunny_encourage.png",
  "assets/characters/bunny_excited.png",
  "assets/characters/bunny_happy.png",
+ "assets/characters/bunny_hat_beanie.png",
  "assets/characters/bunny_hat_crown.png",
  "assets/characters/bunny_hat_explorer.png",
- "assets/characters/bunny_hat_leaf.png",
  "assets/characters/bunny_hat_party.png",
  "assets/characters/bunny_hat_star.png",
  "assets/characters/bunny_hat_wizard.png",
@@ -37,9 +37,9 @@ const ASSETS = [
  "assets/characters/dino_encourage.png",
  "assets/characters/dino_excited.png",
  "assets/characters/dino_happy.png",
+ "assets/characters/dino_hat_beanie.png",
  "assets/characters/dino_hat_crown.png",
  "assets/characters/dino_hat_explorer.png",
- "assets/characters/dino_hat_leaf.png",
  "assets/characters/dino_hat_party.png",
  "assets/characters/dino_hat_star.png",
  "assets/characters/dino_hat_wizard.png",
@@ -55,9 +55,9 @@ const ASSETS = [
  "assets/characters/owl_encourage.png",
  "assets/characters/owl_excited.png",
  "assets/characters/owl_happy.png",
+ "assets/characters/owl_hat_beanie.png",
  "assets/characters/owl_hat_crown.png",
  "assets/characters/owl_hat_explorer.png",
- "assets/characters/owl_hat_leaf.png",
  "assets/characters/owl_hat_party.png",
  "assets/characters/owl_hat_star.png",
  "assets/characters/owl_hat_wizard.png",
@@ -68,9 +68,9 @@ const ASSETS = [
  "assets/characters/pig_encourage.png",
  "assets/characters/pig_excited.png",
  "assets/characters/pig_happy.png",
+ "assets/characters/pig_hat_beanie.png",
  "assets/characters/pig_hat_crown.png",
  "assets/characters/pig_hat_explorer.png",
- "assets/characters/pig_hat_leaf.png",
  "assets/characters/pig_hat_party.png",
  "assets/characters/pig_hat_star.png",
  "assets/characters/pig_hat_wizard.png",
@@ -83,9 +83,9 @@ const ASSETS = [
  "assets/characters/poko_encourage.png",
  "assets/characters/poko_excited.png",
  "assets/characters/poko_happy.png",
+ "assets/characters/poko_hat_beanie.png",
  "assets/characters/poko_hat_crown.png",
  "assets/characters/poko_hat_explorer.png",
- "assets/characters/poko_hat_leaf.png",
  "assets/characters/poko_hat_party.png",
  "assets/characters/poko_hat_star.png",
  "assets/characters/poko_hat_wizard.png",
@@ -101,9 +101,9 @@ const ASSETS = [
  "assets/characters/sheep_encourage.png",
  "assets/characters/sheep_excited.png",
  "assets/characters/sheep_happy.png",
+ "assets/characters/sheep_hat_beanie.png",
  "assets/characters/sheep_hat_crown.png",
  "assets/characters/sheep_hat_explorer.png",
- "assets/characters/sheep_hat_leaf.png",
  "assets/characters/sheep_hat_party.png",
  "assets/characters/sheep_hat_star.png",
  "assets/characters/sheep_hat_wizard.png",
@@ -116,9 +116,9 @@ const ASSETS = [
  "assets/characters/squirrel_encourage.png",
  "assets/characters/squirrel_excited.png",
  "assets/characters/squirrel_happy.png",
+ "assets/characters/squirrel_hat_beanie.png",
  "assets/characters/squirrel_hat_crown.png",
  "assets/characters/squirrel_hat_explorer.png",
- "assets/characters/squirrel_hat_leaf.png",
  "assets/characters/squirrel_hat_party.png",
  "assets/characters/squirrel_hat_star.png",
  "assets/characters/squirrel_hat_wizard.png",
@@ -132,18 +132,18 @@ const ASSETS = [
  "assets/characters/tiger_encourage.png",
  "assets/characters/tiger_excited.png",
  "assets/characters/tiger_happy.png",
+ "assets/characters/tiger_hat_beanie.png",
  "assets/characters/tiger_hat_crown.png",
  "assets/characters/tiger_hat_explorer.png",
- "assets/characters/tiger_hat_leaf.png",
  "assets/characters/tiger_hat_party.png",
  "assets/characters/tiger_hat_star.png",
  "assets/characters/tiger_hat_wizard.png",
  "assets/characters/tiger_proud.png",
  "assets/characters/tiger_sleepy.png",
  "assets/characters/tiger_surprised.png",
+ "assets/hats/beanie.png",
  "assets/hats/crown.png",
  "assets/hats/explorer.png",
- "assets/hats/leaf.png",
  "assets/hats/party.png",
  "assets/hats/star.png",
  "assets/hats/wizard.png",
@@ -241,9 +241,16 @@ self.addEventListener("install", (e) => {
 self.addEventListener("activate", (e) => {
   e.waitUntil(caches.keys().then((keys) => Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))).then(() => self.clients.claim()));
 });
+// 앱 셸(HTML·JS·CSS·매니페스트)은 네트워크 우선 → 새 배포가 첫 로드에 바로 반영, 오프라인이면 캐시.
+// 그림·음원 같은 에셋은 캐시 우선.
+const SHELL = /\.(html|js|css|json)$|\/$/;
 self.addEventListener("fetch", (e) => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then((res) => {
-    const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); return res;
-  }).catch(() => caches.match("index.html"))));
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin) return;
+  const put = (res) => { if (res && res.ok) { const copy = res.clone(); caches.open(CACHE).then((c) => c.put(e.request, copy)); } return res; };
+  if (SHELL.test(url.pathname)) {
+    e.respondWith(fetch(e.request).then(put).catch(() => caches.match(e.request).then((hit) => hit || caches.match("index.html"))));
+  } else {
+    e.respondWith(caches.match(e.request).then((hit) => hit || fetch(e.request).then(put).catch(() => caches.match("index.html"))));
+  }
 });

@@ -29,7 +29,7 @@
 
   const HATS = [
     { id: "explorer", name: "탐험가 모자", price: 60 }, { id: "crown", name: "황금 왕관", price: 300 }, { id: "wizard", name: "마법사 모자", price: 150 },
-    { id: "star", name: "별빛 머리띠", price: 90 }, { id: "party", name: "파티 모자", price: 120 }, { id: "leaf", name: "잎사귀 화관", price: 80 },
+    { id: "star", name: "별빛 머리띠", price: 90 }, { id: "party", name: "파티 모자", price: 120 }, { id: "beanie", name: "방울 모자", price: 80 },
   ];
   const $ = (id) => document.getElementById(id);
   // ---------- 주인공 캐릭터 (포코 기본, 나머지는 코인으로 열기) ----------
@@ -777,6 +777,13 @@
     const isArtifact = /claude\.ai$/.test(location.hostname);
     if ("serviceWorker" in navigator && isHttp && !isArtifact) {
       window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+      // 새 버전 서비스워커가 자리 잡으면 한 번 새로고침해 최신 화면을 보여준다 (미션 중이 아닐 때만)
+      let refreshed = false; const hadController = !!navigator.serviceWorker.controller;
+      navigator.serviceWorker.addEventListener("controllerchange", () => {
+        if (refreshed || !hadController) return;
+        refreshed = true;
+        if (!$("screen-task").classList.contains("active")) location.reload();
+      });
     }
     let deferred = null;
     const btn = $("btn-install");
