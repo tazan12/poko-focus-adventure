@@ -132,13 +132,13 @@ def split_faces(name, rows, cols, names, out_dir, size=512, prefix="poko"):
 
 
 if __name__ == "__main__":
-    jobs = [("poko_run", 2, 3), ("poko_jump", 2, 3), ("poko_idle", 2, 2), ("star_idle", 2, 2), ("spiky_idle", 2, 2), ("poko_dance", 2, 2), ("poko_wave", 2, 2), ("poko_duck", 2, 2), ("spiky_run", 2, 2)]
+    jobs = [("poko_run", 2, 3), ("poko_jump", 2, 3), ("poko_idle", 2, 2), ("star_idle", 2, 2), ("spiky_idle", 2, 2), ("poko_dance", 2, 2), ("poko_wave", 2, 2), ("poko_duck", 2, 2), ("spiky_run", 2, 2), ("poko_catch", 2, 2)]
     meta = json.load(open(os.path.join(BASE, "sprites.json"))) if os.path.exists(os.path.join(BASE, "sprites.json")) else {}
     for name, r, c in jobs:
         if os.path.exists(os.path.join(BASE, f"_grid_{name}.png")):
             meta[name] = slice_grid(name, r, c)
-    for h in ["bunny", "squirrel", "owl"]:
-        for n, r, c in [("run", 2, 3), ("jump", 2, 3), ("idle", 2, 2), ("duck", 2, 2)]:
+    for h in ["bunny", "squirrel", "owl", "dino", "pig", "sheep", "tiger"]:
+        for n, r, c in [("run", 2, 3), ("jump", 2, 3), ("idle", 2, 2), ("duck", 2, 2), ("catch", 2, 2)]:
             if os.path.exists(os.path.join(BASE, f"_grid_{h}_{n}.png")): meta[f"{h}_{n}"] = slice_grid(f"{h}_{n}", r, c)
         if os.path.exists(os.path.join(BASE, f"_grid_{h}_faces.png")):
             split_faces(f"{h}_faces", 2, 3, ["happy", "surprised", "proud", "encourage", "excited", "sleepy"], os.path.join(os.path.dirname(BASE), "characters"), prefix=h)

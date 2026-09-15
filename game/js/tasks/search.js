@@ -57,7 +57,7 @@ const TaskSearch = {
     ctx.stage.innerHTML = `<div class="cave" id="cave"></div>`;
     ctx.controls.innerHTML = `<div class="key-hint">별별이를 손가락/마우스로 직접 터치하세요</div>`;
     const cave = document.getElementById("cave");
-    const distractors = level >= 3 ? ["cloud", "moon", "planet", "bunny", "squirrel", "owl"] : ["cloud", "moon", "planet"];
+    const distractors = (level >= 3 ? ["cloud", "moon", "planet", "bunny", "squirrel", "owl"] : ["cloud", "moon", "planet"]).filter((k) => k !== Storage.hero());
     const log = [];
     let cur = null;
 

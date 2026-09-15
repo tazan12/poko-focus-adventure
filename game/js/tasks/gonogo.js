@@ -1,9 +1,12 @@
 // 미션 ① 반짝 숲 달리기 — Go/No-Go (억제조절)
 // 과제 구조는 vekteo/GoNoGo_jsPsych (MIT, Bezdjian et al. 2009)와 동일하게 유지:
 //   Go:No-Go = 80:20, 응답 창 = 자극 제시(≈500ms) + ISI(≈1500ms), 20시행 블록, 후반 규칙 반전
-// 게임 껍데기(테스터 피드백 반영): 친구들이 오른쪽에서 한 명씩 포코를 향해 달려온다.
-//   별별이·토끼 → 점프해서 잡기 / 심술이 → 아무것도 누르지 않으면 혀를 내밀며 옆으로 스쳐 지나간다 / 부엉이(7단계+) → 숙여서 피하기
-//   응답 창 = 친구가 포코 앞에 도착할 때까지의 시간. 도착 후엔 각자 "지나가는" 모션을 보여준다.
+// 게임 껍데기(테스터 피드백 반영): 친구·장애물이 오른쪽에서 한 명씩 주인공을 향해 달려온다.
+//   별별이·친구 → 잡기(스페이스/터치) : 손을 뻗어 품에 안는다 (점프가 아님)
+//   통나무(5+)   → 점프(↑/버튼)     : 뛰어넘어 피한다
+//   꿀벌(7+)     → 숙이기(↓/버튼)   : 머리 위로 지나가게 피한다
+//   심술이       → 아무것도 안 함    : 혀를 내밀며 옆으로 스쳐 지나간다 (No-Go)
+//   응답 창 = 상대가 주인공 앞에 도착할 때까지의 시간. 도착 후엔 각자 "지나가는" 모션을 보여준다.
 const TaskGoNoGo = {
   id: "gonogo",
   name: "반짝 숲 달리기",
@@ -12,7 +15,7 @@ const TaskGoNoGo = {
   icon: "assets/characters/star_go.png",
   bg: "assets/bg/forest.jpg",
   sticker: "assets/stickers/forest.png",
-  desc: "숲길을 달리며 다가오는 별별이를 점프해서 잡아요. 심술이는 참으면 알아서 스쳐 지나가요!",
+  desc: "숲길을 달리며 다가오는 별별이를 잡고, 장애물은 뛰어넘거나 숙여서 피해요. 심술이는 참으면 알아서 스쳐 지나가요!",
   story: "숲의 별빛이 사라졌어! 숲길을 달려오는 별별이들을 잡아서 별빛을 되찾자. 심술이가 달려오면… 가만히 있으면 혀만 내밀고 지나갈 거야!",
 
   levelParams(level) {
@@ -31,35 +34,42 @@ const TaskGoNoGo = {
     return table[Math.min(level, table.length) - 1];
   },
 
-  // 티어별 변화: 3+ 토끼 합류(잡는 친구 2종), 6+ 안개(가까이 와야 또렷), 7+ 부엉이(숙여서 피하기), 8+ 가속 구간
-  tier(level) { return { bunny: level >= 3, fog: level >= 6, owl: level >= 7, burst: level >= 8 }; },
+  // 티어별 변화: 3+ 친구 합류(잡는 상대 2종), 5+ 통나무(점프로 피하기), 6+ 안개, 7+ 꿀벌(숙여서 피하기), 8+ 가속 구간
+  tier(level) { return { friend: level >= 3, log: level >= 5, fog: level >= 6, bee: level >= 7, burst: level >= 8 }; },
+  // 잡는 친구: 주인공이 아닌 캐릭터 (토토가 주인공이면 도토가 달려온다)
+  friendKind() { return Storage.hero() === "bunny" ? "squirrel" : "bunny"; },
+  NAMES: { star: "별별이", bunny: "토토", squirrel: "도토", spiky: "심술이", log: "통나무", bee: "꿀벌" },
 
   intro(level) {
-    const p = this.levelParams(level), t = this.tier(level);
+    const p = this.levelParams(level), t = this.tier(level), f = this.friendKind();
     return {
       title: "반짝 숲 달리기",
       desc: (p.reverse
-        ? "<b>별별이</b>가 달려오면 점프해서 잡기! <b>심술이</b>는 참기!<br>이 숲은 마법에 걸려서, 달리다가 <b>규칙이 뒤집힐 수도</b> 있어."
-        : "친구들이 한 명씩 <b>달려와요</b>. <b>별별이</b>가 오면 <b>점프!</b>(스페이스 또는 화면 터치)<br><b>심술이</b>가 오면 <b>아무것도 누르지 말기</b> — 가만히 있으면 옆으로 스쳐 지나가요!")
-        + (t.bunny ? "<br>🐰 <b>토끼</b>도 같이 달려와요. 토끼도 점프해서 잡기!" : "")
-        + (t.fog ? "<br>🌫 안개 때문에 친구들이 <b>가까이 와야</b> 또렷하게 보여요." : "")
-        + (t.owl ? "<br>🦉 <b>부엉이</b>가 날아오면 <b>숙이기!</b>(↓ 키 또는 숙이기 버튼)" : "")
+        ? "<b>별별이</b>가 달려오면 <b>잡기!</b> <b>심술이</b>는 참기!<br>이 숲은 마법에 걸려서, 달리다가 <b>규칙이 뒤집힐 수도</b> 있어."
+        : "친구들이 한 명씩 <b>달려와요</b>. <b>별별이</b>가 오면 <b>잡기!</b>(스페이스 또는 화면 터치)<br><b>심술이</b>가 오면 <b>아무것도 누르지 말기</b> — 가만히 있으면 옆으로 스쳐 지나가요!")
+        + (t.friend ? `<br>🐾 <b>${this.NAMES[f]}</b>도 같이 달려와요. ${this.NAMES[f]}도 잡기!` : "")
+        + (t.log ? "<br>🪵 <b>통나무</b>가 굴러오면 <b>점프!</b>(↑ 키 또는 점프 버튼)로 뛰어넘어요." : "")
+        + (t.fog ? "<br>🌫 안개 때문에 <b>가까이 와야</b> 또렷하게 보여요." : "")
+        + (t.bee ? "<br>🐝 <b>꿀벌</b>이 날아오면 <b>숙이기!</b>(↓ 키 또는 숙이기 버튼)" : "")
         + (t.burst ? "<br>⚡ 중간에 <b>가속 구간</b>이 있어요!" : ""),
       demo: `
-        <div class="demo-item go"><img src="assets/characters/star_go.png" alt="">점프해서 잡기!</div>
-        ${t.bunny ? `<div class="demo-item go"><img src="assets/characters/bunny.png" alt="">점프해서 잡기!</div>` : ""}
+        <div class="demo-item go"><img src="assets/characters/star_go.png" alt="">잡기!</div>
+        ${t.friend ? `<div class="demo-item go"><img src="assets/characters/${f}.png" alt="">잡기!</div>` : ""}
         <div class="demo-item nogo"><img src="assets/characters/spiky_nogo.png" alt="">가만히 → 스쳐 지나감</div>
-        ${t.owl ? `<div class="demo-item duck"><img src="assets/characters/owl.png" alt="">숙여서 피하기!</div>` : ""}`,
+        ${t.log ? `<div class="demo-item jump"><img src="assets/characters/log.png" alt="">점프로 피하기!</div>` : ""}
+        ${t.bee ? `<div class="demo-item duck"><img src="assets/characters/bee.png" alt="">숙여서 피하기!</div>` : ""}`,
     };
   },
 
-  // 20시행 블록: Go 16(부엉이 티어면 그중 4는 '숙이기' Go) + No-Go 4. Go:No-Go = 80:20 유지
+  // 20시행 블록: Go 16 + No-Go 4 (80:20 유지). Go 안에서 잡기/점프/숙이기 종류가 티어에 따라 섞인다
   makeBlock(goIsStar, tier) {
     const trials = [];
+    const nJump = tier.log ? (tier.bee ? 3 : 4) : 0, nDuck = tier.bee ? 3 : 0;
     for (let i = 0; i < 16; i++) {
-      if (tier.owl && i < 4) { trials.push({ go: true, kind: "owl", action: "duck" }); continue; }
-      const kind = goIsStar ? (tier.bunny && i % 3 === 1 ? "bunny" : "star") : "spiky";
-      trials.push({ go: true, kind, action: "jump" });
+      if (i < nJump) { trials.push({ go: true, kind: "log", action: "jump" }); continue; }
+      if (i < nJump + nDuck) { trials.push({ go: true, kind: "bee", action: "duck" }); continue; }
+      const kind = goIsStar ? (tier.friend && i % 3 === 1 ? this.friendKind() : "star") : "spiky";
+      trials.push({ go: true, kind, action: "catch" });
     }
     for (let i = 0; i < 4; i++) trials.push({ go: false, kind: goIsStar ? "spiky" : "star", action: null });
     return Stats.shuffle(trials).map((t) => {
@@ -76,6 +86,7 @@ const TaskGoNoGo = {
     const BLOCKS = p.quick ? 1 : 3;
     let goIsStar = true;
     const log = [];
+    const N = this.NAMES;
 
     ctx.stage.innerHTML = `
       <div class="runner">
@@ -83,18 +94,20 @@ const TaskGoNoGo = {
         <div class="runner-lane" id="runner-lane"></div>
         <div class="runner-poko" id="runner-poko"></div>
       </div>`;
-    ctx.controls.innerHTML = `<button class="tap-btn" id="gng-tap">점프!</button>${tier.owl ? `<button class="tap-btn duck" id="gng-duck">숙이기!</button>` : ""}<div class="key-hint">키보드: 스페이스 = 점프${tier.owl ? " · ↓ = 숙이기" : ""} · 화면 터치도 돼요</div>`;
+    ctx.controls.innerHTML = `<button class="tap-btn" id="gng-catch">잡기!</button>${tier.log ? `<button class="tap-btn jump" id="gng-jump">점프!</button>` : ""}${tier.bee ? `<button class="tap-btn duck" id="gng-duck">숙이기!</button>` : ""}<div class="key-hint">키보드: 스페이스 = 잡기${tier.log ? " · ↑ = 점프" : ""}${tier.bee ? " · ↓ = 숙이기" : ""} · 화면 터치 = 잡기</div>`;
     const lane = document.getElementById("runner-lane");
     const poko = document.getElementById("runner-poko");
     const CHAR_H = window.innerWidth < 600 ? "22%" : "30%";
     const runAnim = () => Sprite.play(poko, "poko_run", { fps: 12, charHeight: CHAR_H });
     runAnim();
+    // 잡기 = 제자리에서 손을 뻗어 안기(점프 아님) / 점프 = 포물선 / 숙이기 = 납작
+    const catchAnim = () => Sprite.play(poko, "poko_catch", { fps: 10, loop: false, charHeight: CHAR_H, onEnd: runAnim });
     const jump = () => Sprite.play(poko, "poko_jump", { fps: 14, loop: false, charHeight: CHAR_H, arc: 70, onEnd: runAnim });
     const duck = () => Sprite.play(poko, "poko_duck", { fps: 10, loop: false, charHeight: CHAR_H, onEnd: runAnim });
     const lean = () => { poko.classList.remove("lean"); void poko.offsetWidth; poko.classList.add("lean"); setTimeout(() => poko.classList.remove("lean"), 500); };
     const oops = () => { poko.classList.add("oops"); setTimeout(() => poko.classList.remove("oops"), 500); };
 
-    // 친구가 포코 앞에 도착하는 시점(전체 이동 구간 대비 비율)을 실제 배치로 계산 → 응답 창 = 도착까지의 시간
+    // 상대가 주인공 앞에 도착하는 시점(전체 이동 구간 대비 비율)을 실제 배치로 계산 → 응답 창 = 도착까지의 시간
     const passFrac = () => {
       const R = lane.getBoundingClientRect(), P = poko.getBoundingClientRect();
       const critterW = R.width * (window.innerWidth < 600 ? 0.22 : 0.16);
@@ -102,6 +115,7 @@ const TaskGoNoGo = {
       const startX = R.width, endX = -R.width * 0.25; // left: 100% → -25%
       return Math.min(0.85, Math.max(0.5, (startX - (pokoCenter - critterW / 2)) / (startX - endX)));
     };
+    const bonk = (wrap, el, msg) => { wrap.classList.add("stop"); el.classList.add("bonk"); setTimeout(() => el.classList.add("hide"), 450); oops(); ctx.miss(el, { msg }); };
 
     // 현재 시행 상태
     let cur = null; // { t, wrap, el, pressed, onset, rt, window }
@@ -110,47 +124,46 @@ const TaskGoNoGo = {
       cur.pressed = action;
       cur.rt = Math.round(performance.now() - cur.onset);
       const { t, wrap, el } = cur;
-      if (action === "jump") jump(); else duck();
+      if (action === "catch") catchAnim(); else if (action === "jump") jump(); else duck();
       if (t.go && t.action === action) {
-        // 적중: 별별이/토끼를 잡거나, 부엉이를 숙여서 피함
-        if (action === "jump") {
-          // 잡힌 친구는 포코 품으로 빨려 들어온 뒤 반짝 터진다
+        if (action === "catch") {
+          // 잡기 적중: 상대가 주인공 품으로 빨려 들어온 뒤 반짝 터진다
           wrap.classList.add("stop");
           const P = poko.getBoundingClientRect(), C = wrap.getBoundingClientRect();
-          wrap.style.setProperty("--dx", `${Math.round(P.left + P.width * 0.55 - (C.left + C.width / 2))}px`);
-          wrap.style.setProperty("--dy", `${Math.round(P.top + P.height * 0.3 - (C.top + C.height / 2))}px`);
+          wrap.style.setProperty("--dx", `${Math.round(P.left + P.width * 0.7 - (C.left + C.width / 2))}px`);
+          wrap.style.setProperty("--dy", `${Math.round(P.top + P.height * 0.55 - (C.top + C.height / 2))}px`);
           wrap.classList.add("pull"); el.classList.add("caught");
-          const c = { x: P.left + P.width * 0.55, y: P.top + P.height * 0.3 };
-          Fx.burst(c.x, c.y, t.gold ? "#fff1a8" : t.kind === "bunny" ? "#ffd6e6" : "#ffd24d", t.gold ? 18 : 10);
+          const c = { x: P.left + P.width * 0.7, y: P.top + P.height * 0.5 };
+          Fx.burst(c.x, c.y, t.gold ? "#fff1a8" : t.kind === "star" ? "#ffd24d" : "#ffd6e6", t.gold ? 18 : 10);
           const quick = cur.rt < cur.window * 0.45; // 멀리 있을 때 바로 판단하면 번개 보너스
           if (t.gold) ctx.hit(el, { msg: "황금 별별이!", bonus: 5 });
           else if (quick) ctx.hit(el, { msg: "번개 판단!", bonus: 1 });
           else ctx.hit(el, { msg: "잡았다!" });
         } else {
-          wrap.classList.add("over"); // 부엉이가 머리 위로 지나감
-          ctx.hit(el, { msg: "숙였다!" });
+          // 점프/숙이기 적중: 장애물이 발밑/머리 위로 지나간다
+          wrap.classList.add(action === "jump" ? "under" : "over");
+          ctx.hit(el, { msg: action === "jump" ? "뛰어넘었다!" : "숙였다!" });
         }
       } else if (!t.go) {
-        // 오경보: 참아야 할 친구를 건드림 → 부딪혀 튕겨남
-        wrap.classList.add("stop"); el.classList.add("bonk");
-        setTimeout(() => el.classList.add("hide"), 450);
-        oops();
-        ctx.miss(el, { msg: t.kind === "spiky" ? "앗, 심술이야!" : "앗, 별별이는 참아야 해!" });
+        // 오경보: 참아야 할 상대를 건드림 → 부딪혀 튕겨남
+        bonk(wrap, el, t.kind === "spiky" ? "앗, 심술이야!" : "앗, 별별이는 참아야 해!");
       } else {
-        // 잘못된 동작(부엉이에게 점프 / 별별이에게 숙이기) → 부딪힘
-        wrap.classList.add("stop"); el.classList.add("bonk");
-        setTimeout(() => el.classList.add("hide"), 450);
-        oops();
-        ctx.miss(el, { msg: t.kind === "owl" ? "부엉이는 숙여야 해!" : "숙이면 못 잡아!" });
+        // 잘못된 동작 → 부딪힘
+        const need = { catch: "잡아야", jump: "뛰어넘어야", duck: "숙여야" }[t.action];
+        bonk(wrap, el, `${N[t.kind]}은(는) ${need} 해!`);
       }
     };
-    const onPress = () => respond("jump");
-    const onKey = (e) => { if (e.key === "ArrowDown" || e.key === "s" || e.key === "S") { e.preventDefault(); if (tier.owl) respond("duck"); } };
+    const onPress = () => respond("catch");
+    const onKey = (e) => {
+      if ((e.key === "ArrowUp" || e.key === "w" || e.key === "W") && tier.log) { e.preventDefault(); respond("jump"); }
+      else if ((e.key === "ArrowDown" || e.key === "s" || e.key === "S") && tier.bee) { e.preventDefault(); respond("duck"); }
+    };
     ctx.input.on(onPress); ctx.input.onKey(onKey);
-    document.getElementById("gng-tap").addEventListener("pointerdown", (e) => { e.stopPropagation(); onPress(); });
-    if (tier.owl) document.getElementById("gng-duck").addEventListener("pointerdown", (e) => { e.stopPropagation(); respond("duck"); });
+    document.getElementById("gng-catch").addEventListener("pointerdown", (e) => { e.stopPropagation(); onPress(); });
+    if (tier.log) document.getElementById("gng-jump").addEventListener("pointerdown", (e) => { e.stopPropagation(); respond("jump"); });
+    if (tier.bee) document.getElementById("gng-duck").addEventListener("pointerdown", (e) => { e.stopPropagation(); respond("duck"); });
 
-    const IMG = { star: "star_go", bunny: "bunny", owl: "owl", spiky: "spiky_nogo" };
+    const IMG = { star: "star_go", bunny: "bunny", squirrel: "squirrel", bee: "bee", log: "log", spiky: "spiky_nogo" };
     let total = 0;
     const totalTrials = BLOCKS * 20;
     for (let b = 0; b < BLOCKS; b++) {
@@ -169,7 +182,8 @@ const TaskGoNoGo = {
         wrap.className = `runner-critter ${t.kind}${tier.fog ? " fog" : ""}`;
         wrap.style.setProperty("--dur", `${dur}ms`);
         wrap.style.setProperty("--pass", frac.toFixed(3));
-        wrap.innerHTML = `<div class="critter ${t.kind === "owl" ? "flap" : t.kind === "spiky" ? "" : "hop"}${t.gold ? " gold" : ""}"></div>`;
+        const motion = t.kind === "bee" ? "flap" : t.kind === "log" ? "roll" : t.kind === "spiky" ? "" : "hop";
+        wrap.innerHTML = `<div class="critter ${motion}${t.gold ? " gold" : ""}"></div>`;
         const el = wrap.firstElementChild;
         if (t.gold) el.style.backgroundImage = 'url("assets/characters/star_gold.png")';
         else if (t.kind === "spiky") Sprite.play(el, "spiky_run", { fps: 9 });
@@ -184,16 +198,16 @@ const TaskGoNoGo = {
         if (t.go) type = !done.pressed ? "omission" : done.pressed === t.action ? "hit" : "wrong";
         else type = done.pressed ? "commission" : "correct_rejection";
         if (type === "omission") {
-          if (t.kind === "owl") { wrap.classList.add("stop"); el.classList.add("bonk"); oops(); setTimeout(() => el.classList.add("hide"), 450); ctx.miss(el, { msg: "앗, 부엉이!" }); }
+          if (t.kind === "bee" || t.kind === "log") bonk(wrap, el, `앗, ${N[t.kind]}!`);
           else { wrap.classList.add("passed"); el.classList.add("flyaway"); ctx.miss(el, { msg: "놓쳤다…", soft: true }); }
         }
         if (type === "correct_rejection") {
-          // 잘 참음: 심술이는 혀를 내밀고 폴짝 뛰어 옆으로 스쳐 지나가고, 포코는 살짝 몸을 젖힌다
+          // 잘 참음: 심술이는 혀를 내밀고 폴짝 뛰어 옆으로 스쳐 지나가고, 주인공은 살짝 몸을 젖힌다
           wrap.classList.add("passed"); el.classList.add(t.kind === "spiky" ? "taunt" : "wink"); lean();
           ctx.hit(el, { msg: t.kind === "spiky" ? "휙~ 잘 참았어!" : "잘 참았어!", quiet: true });
         }
-        log.push({ go: t.go, kind: t.kind, pressed: done.pressed, rt: done.rt, type, reversed: !goIsStar, gold: !!t.gold, burst });
-        // 지나간 친구는 화면 밖으로 나간 뒤 제거 (다음 친구는 바로 출발)
+        log.push({ go: t.go, kind: t.kind, action: t.action, pressed: done.pressed, rt: done.rt, type, reversed: !goIsStar, gold: !!t.gold, burst });
+        // 지나간 상대는 화면 밖으로 나간 뒤 제거 (다음 상대는 바로 출발)
         const tail = Math.max(500, dur - win + 100);
         setTimeout(() => { Sprite.stop(el); wrap.remove(); }, tail);
         total++;
@@ -220,7 +234,7 @@ const TaskGoNoGo = {
         hitRate: goN ? hits.length / goN : 0, omission, commission, wrong,
         omissionRate: goN ? omission / goN : 0, commissionRate: nogoN ? commission / nogoN : 0,
         meanRT: Math.round(Stats.mean(rts)), rtSD: Math.round(Stats.sd(rts)),
-        bunny: tier.bunny, owl: tier.owl, fog: tier.fog, burst: tier.burst,
+        friend: tier.friend, log: tier.log, bee: tier.bee, fog: tier.fog, burst: tier.burst,
       },
       trials: log.length,
     };
