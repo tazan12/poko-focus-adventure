@@ -56,7 +56,7 @@
     // 정적 이미지 표시용: 포코는 원본 비율, 다른 캐릭터는 정사각형 상자(contain)
     aspect(state, pokoRatio) { return Storage.hero() === "poko" ? pokoRatio : "1 / 1"; },
     // HUD 얼굴 이미지 위 모자 위치 (캐릭터마다 머리 위치가 다름) [left%, top%]
-    HUD_HAT: { poko: [52, 12], bunny: [50, 7], squirrel: [40, 14], owl: [48, 10], dino: [50, 12], pig: [50, 10], sheep: [50, 10], tiger: [50, 8] },
+    HUD_HAT: { poko: [52, 12], bunny: [50, 7], squirrel: [40, 14], owl: [48, 12], dino: [50, 8], pig: [50, 5], sheep: [49, 5], tiger: [50, 6] },
     apply() {
       Sprite.hero = Storage.hero();
       $("hud-poko").src = Hero.face("neutral");
