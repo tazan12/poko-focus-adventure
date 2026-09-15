@@ -12,6 +12,7 @@ const TaskHeadcount = {
   desc: "친구들이 텐트에 들어가고 나와요. 마지막에 텐트 안에 몇 명 있는지 맞혀요!",
   story: "캠프의 텐트는 안이 안 보여. 누가 들어가고 누가 나오는지 잘 세어 두었다가, 안에 몇 명 남았는지 알려 줘!",
   CRITTERS: ["star_go", "cloud", "moon", "planet", "bunny", "squirrel", "owl"],
+  critters() { return this.CRITTERS.filter((k) => k !== Storage.hero()); },
 
   levelParams(level) {
     const table = [
@@ -63,7 +64,7 @@ const TaskHeadcount = {
       msg.textContent = ""; countEl.textContent = "";
       // 시작 인원: 보이게 표시하거나(저단계) 빠르게 들어가게(고단계)
       if (!p.hideStart) { inside = p.start; countEl.textContent = `${inside}명 안에 있어요`; await ctx.wait(1400); countEl.textContent = ""; }
-      else { for (let k = 0; k < p.start; k++) { await walk(this.CRITTERS[k % this.CRITTERS.length], "in", Math.round(p.speed * 0.7)); inside++; } }
+      else { for (let k = 0; k < p.start; k++) { await walk(this.critters()[k % this.critters().length], "in", Math.round(p.speed * 0.7)); inside++; } }
       // 이동 시퀀스: 안이 0 미만/최대 초과가 되지 않게
       const moves = [];
       let cur = inside;
@@ -72,7 +73,7 @@ const TaskHeadcount = {
         if (cur <= 0) dir = "in"; if (cur >= p.maxIn) dir = "out";
         moves.push(dir); cur += dir === "in" ? 1 : -1;
       }
-      for (const dir of moves) { await walk(this.CRITTERS[Math.floor(Math.random() * this.CRITTERS.length)], dir, p.speed); inside += dir === "in" ? 1 : -1; await ctx.wait(120); }
+      for (const dir of moves) { await walk(this.critters()[Math.floor(Math.random() * this.critters().length)], dir, p.speed); inside += dir === "in" ? 1 : -1; await ctx.wait(120); }
       // 질문
       msg.textContent = "텐트 안에 몇 명?";
       const opts = []; const lo = Math.max(0, inside - 2), hi = lo + 4;

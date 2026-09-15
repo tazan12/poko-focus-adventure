@@ -38,6 +38,10 @@
     { id: "bunny", name: "토토", desc: "폴짝폴짝 잘 뛰는 토끼", price: 120 },
     { id: "squirrel", name: "도토", desc: "재빠른 다람쥐", price: 160 },
     { id: "owl", name: "부우", desc: "밤하늘을 나는 부엉이", price: 200 },
+    { id: "pig", name: "꿀꿀", desc: "명랑한 아기 돼지", price: 200 },
+    { id: "sheep", name: "양양", desc: "구름처럼 폭신한 양", price: 220 },
+    { id: "dino", name: "디노", desc: "씩씩한 아기 공룡", price: 240 },
+    { id: "tiger", name: "호호", desc: "용감한 아기 호랑이", price: 260 },
   ];
   // 표정 파일: 포코는 표정 10종, 다른 캐릭터는 6종(happy/surprised/proud/encourage/excited/sleepy) + 기본 이미지
   const FACE_MAP = { neutral: null, alert: "surprised", thinking: null, sad: "encourage" };
@@ -51,9 +55,13 @@
     },
     // 정적 이미지 표시용: 포코는 원본 비율, 다른 캐릭터는 정사각형 상자(contain)
     aspect(state, pokoRatio) { return Storage.hero() === "poko" ? pokoRatio : "1 / 1"; },
+    // HUD 얼굴 이미지 위 모자 위치 (캐릭터마다 머리 위치가 다름) [left%, top%]
+    HUD_HAT: { poko: [52, 12], bunny: [50, 7], squirrel: [40, 14], owl: [48, 10], dino: [50, 12], pig: [50, 10], sheep: [50, 10], tiger: [50, 8] },
     apply() {
       Sprite.hero = Storage.hero();
       $("hud-poko").src = Hero.face("neutral");
+      const hh = Hero.HUD_HAT[Storage.hero()] || [52, 12];
+      document.querySelectorAll(".hud-hat").forEach((el) => { el.style.left = `${hh[0]}%`; el.style.top = `${hh[1]}%`; });
       document.querySelectorAll(".sprite[data-sprite]").forEach((el) => { if (!el._sprite) Sprite.detach(el); });
     },
   };
@@ -237,6 +245,7 @@
       if (after === "session") { after = null; $("btn-start-session").click(); }
     }
     $("btn-profile").addEventListener("click", () => { Audio.unlock(); open(); });
+    $("btn-profile-menu").addEventListener("click", () => { Audio.unlock(); open(); });
     $("btn-profile-save").addEventListener("click", save);
     $("profile-name").addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
     return { open };
@@ -772,7 +781,7 @@
     .forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
   Object.values(TASKS).forEach((t) => { const i = new Image(); i.src = t.bg; });
 
-  ["spiky_king", "tent", "fruit", "bell", "bunny", "squirrel", "owl"].forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
+  ["spiky_king", "tent", "fruit", "bell", "bunny", "squirrel", "owl", "bee", "log", "dino", "pig", "sheep", "tiger"].forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
   if (Storage.hero() !== "poko") ["happy", "surprised", "proud", "encourage", "excited", "sleepy"].forEach((st) => { const i = new Image(); i.src = Hero.face(st); });
   applyHat();
   // 초대 링크(?invite=CODE)로 들어오면 코드를 기억해 두고 주소를 정리한다

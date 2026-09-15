@@ -291,8 +291,10 @@ p { line-height: 1.5; }
 .home-challenge span { font-size: 0.8rem; color: #9be7ec; }
 .home-challenge.done { border-color: #ffd24d; box-shadow: 0 0 18px rgba(255, 210, 77, 0.45); }
 .home-menu { display: flex; flex-direction: column; gap: 10px; width: 100%; align-items: flex-start; }
-.home-menu .btn-big { margin-top: 2px; padding: 18px 44px; font-size: 1.4rem; }
+.home-menu .btn-big { margin-top: 2px; padding: 18px 44px; font-size: 1.4rem; width: 100%; max-width: 480px; }
 .home-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+.home-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; max-width: 480px; }
+.home-grid .btn { padding: 12px 8px; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; }
 .btn-glass { background: rgba(255, 255, 255, 0.16); color: #fff; border: 1px solid rgba(255, 255, 255, 0.35); backdrop-filter: blur(6px); }
 .btn-glass:hover { background: rgba(255, 255, 255, 0.28); }
 .btn-shine { position: relative; overflow: hidden; animation: cta-pulse 2.4s ease-in-out infinite; }
@@ -387,6 +389,8 @@ p { line-height: 1.5; }
   .home-menu .btn-big { width: 100%; padding: 16px 20px; font-size: 1.25rem; }
   .home-row { width: 100%; }
   .home-row .btn { flex: 1 1 auto; font-size: 0.9rem; padding: 10px 12px; }
+  .home-grid { grid-template-columns: repeat(2, 1fr); max-width: none; }
+  .home-grid .btn { font-size: 0.9rem; padding: 11px 6px; }
   .disclaimer { max-width: none; text-align: left; }
   .home-tint { background: linear-gradient(0deg, rgba(14, 16, 44, 0.92) 0%, rgba(14, 16, 44, 0.82) 44%, rgba(14, 16, 44, 0.3) 53%, rgba(14, 16, 44, 0.05) 70%, rgba(14, 16, 44, 0.3) 100%), linear-gradient(90deg, rgba(14, 16, 44, 0.5) 0%, rgba(14, 16, 44, 0) 55%); }
   .home-poko { filter: drop-shadow(0 10px 14px rgba(0,0,0,0.45)); }
@@ -758,7 +762,12 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 /* ===================== 반짝 숲 달리기 v2: 친구들이 포코를 향해 달려온다 ===================== */
 .runner-lane { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
 .runner-critter { position: absolute; left: 100%; bottom: 22%; width: 16%; aspect-ratio: 1; animation: run-in var(--dur, 2000ms) linear forwards; will-change: left; }
-.runner-critter.owl { bottom: 46%; }
+.runner-critter.bee { bottom: 46%; }
+.runner-critter.log { width: 14%; bottom: 21%; }
+.critter.roll { animation: roll 0.7s linear infinite; }
+@keyframes roll { to { transform: rotate(-360deg); } }
+/* 뛰어넘은 통나무는 발밑으로, 숙여서 피한 꿀벌은 머리 위로 그대로 지나간다 */
+.runner-critter.under { z-index: 0; } .runner-critter.over { z-index: 3; }
 .runner-critter.stop { animation-play-state: paused; }
 .runner-critter.pull { transition: transform 0.22s ease-in; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.6); }
 .runner-critter.pull .critter.caught { animation-delay: 0.12s; }
@@ -777,10 +786,13 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 @keyframes wink { 50% { transform: scale(1.15) rotate(-10deg); } }
 .runner-poko.lean { animation: lean 0.5s ease-out both; }
 @keyframes lean { 30% { transform: rotate(-16deg) translateX(-7%); } 100% { transform: none; } }
+.tap-btn.jump { background: #2fb36b; box-shadow: 0 8px 0 #1f7d4a; }
+.tap-btn.jump:active { box-shadow: 0 4px 0 #1f7d4a; }
+.intro-demo .jump { color: #1f7d4a; }
 .tap-btn.duck { background: #3f8cff; box-shadow: 0 8px 0 #2a5fb3; }
 .tap-btn.duck:active { box-shadow: 0 4px 0 #2a5fb3; }
 .intro-demo .duck { color: #2a5fb3; }
-@media (max-width: 600px) { .runner-critter { width: 22%; } .task-controls .tap-btn.duck { padding: 14px 22px; } }
+@media (max-width: 600px) { .runner-critter { width: 22%; } .runner-critter.log { width: 18%; } .task-controls .tap-btn { padding: 14px 16px; font-size: 1.05rem; } .task-controls .tap-btn.duck, .task-controls .tap-btn.jump { padding: 14px 14px; } }
 @media (prefers-reduced-motion: reduce) { .critter.hop, .critter.flap { animation: none; } }
 
 /* ===================== 탐험대원 카드 · 랭킹 · 초대 ===================== */
