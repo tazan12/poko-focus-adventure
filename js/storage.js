@@ -14,6 +14,9 @@ const Storage = (() => {
     out.profile = { ...base.profile, ...(d.profile || {}) };
     if (!Array.isArray(out.sessions)) out.sessions = [];
     if (!out.hats || !Array.isArray(out.hats.owned)) out.hats = { owned: [], equipped: null };
+    // 잎사귀 화관은 방울 모자로 교체됨 (캐릭터마다 착용 모습이 어색해 바꿈) — 이미 산 사람은 그대로 방울 모자를 갖는다
+    out.hats.owned = out.hats.owned.map((h) => (h === "leaf" ? "beanie" : h));
+    if (out.hats.equipped === "leaf") out.hats.equipped = "beanie";
     if (!out.heroes || !Array.isArray(out.heroes.owned)) out.heroes = { owned: ["poko"], selected: "poko" };
     return out;
   }
