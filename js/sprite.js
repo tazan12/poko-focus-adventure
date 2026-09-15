@@ -176,7 +176,7 @@ const Sprite = (() => {
   function detach(el) {
     stop(el);
     el.classList.remove("sprite"); delete el.dataset.sprite;
-    el.style.backgroundImage = ""; el.style.backgroundSize = ""; el.style.backgroundPositionX = ""; el.style.aspectRatio = ""; el.style.height = ""; el.style.transform = "";
+    el.style.backgroundImage = ""; el.style.backgroundSize = ""; el.style.backgroundPosition = ""; el.style.backgroundRepeat = ""; el.style.aspectRatio = ""; el.style.height = ""; el.style.transform = "";
   }
 
   return {

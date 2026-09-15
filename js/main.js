@@ -55,20 +55,23 @@
     },
     // 정적 이미지 표시용: 포코는 원본 비율, 다른 캐릭터는 정사각형 상자(contain)
     aspect(state, pokoRatio) { return Storage.hero() === "poko" ? pokoRatio : "1 / 1"; },
+    // 모자를 쓴 모습은 오버레이가 아니라 캐릭터마다 실제로 쓴 그림(assets/characters/{hero}_hat_{hat}.png)을 쓴다 → 자연스러운 착용감
+    wearing() { const d = Storage.load(); const hat = d.hats && d.hats.equipped; return hat ? `assets/characters/${Storage.hero()}_hat_${hat}.png` : null; },
+    // 스프라이트 상자에 정적 그림을 넣는다 (모자 쓴 모습 등)
+    showStatic(el, src, height) { Sprite.detach(el); el.classList.add("static"); el.style.backgroundImage = `url("${src}")`; el.style.backgroundSize = "contain"; el.style.backgroundPosition = "center bottom"; el.style.backgroundRepeat = "no-repeat"; el.style.aspectRatio = "1 / 1"; el.style.height = height; },
     // HUD 얼굴 이미지 위 모자 위치 (캐릭터마다 머리 위치가 다름) [left%, top%]
     HUD_HAT: { poko: [52, 12], bunny: [50, 7], squirrel: [40, 14], owl: [48, 12], dino: [50, 8], pig: [50, 5], sheep: [49, 5], tiger: [50, 6] },
     apply() {
       Sprite.hero = Storage.hero();
-      $("hud-poko").src = Hero.face("neutral");
-      const hh = Hero.HUD_HAT[Storage.hero()] || [52, 12];
-      document.querySelectorAll(".hud-hat").forEach((el) => { el.style.left = `${hh[0]}%`; el.style.top = `${hh[1]}%`; });
+      $("hud-poko").src = Hero.wearing() || Hero.face("neutral");
       document.querySelectorAll(".sprite[data-sprite]").forEach((el) => { if (!el._sprite) Sprite.detach(el); });
     },
   };
 
+  // 모자: 오버레이 슬롯은 더 이상 쓰지 않는다(캐릭터별로 그려 넣은 착용 그림 사용). HUD 얼굴만 갱신
   function applyHat() {
-    const d = Storage.load(); const id = d.hats && d.hats.equipped;
-    document.querySelectorAll(".hat-slot").forEach((el) => { if (id) { el.src = `assets/hats/${id}.png`; el.hidden = false; } else el.hidden = true; });
+    document.querySelectorAll(".hat-slot").forEach((el) => { el.hidden = true; });
+    $("hud-poko").src = Hero.wearing() || Hero.face("neutral");
   }
   let queue = [], sessionMode = "session", currentTask = null, forcedLevel = null, stageTask = null;
   let sessionCoins = 0, combo = 0, bestCombo = 0, sessionResults = [], missionCoinBase = 0;
@@ -104,7 +107,7 @@
     el.src = Hero.face(state);
     el.classList.remove("react"); void el.offsetWidth; el.classList.add("react");
     clearTimeout(pokoTimer);
-    pokoTimer = setTimeout(() => { el.src = Hero.face("neutral"); }, ms);
+    pokoTimer = setTimeout(() => { el.src = Hero.wearing() || Hero.face("neutral"); }, ms);
   }
   function updateCombo() {
     const el = $("hud-combo");
@@ -317,7 +320,12 @@
   const Home = (() => {
     let raf = null, gestureTimer = null, parts = [], turn = 0;
     const canvas = $("home-fx");
-    const idle = () => Sprite.play($("home-poko"), "poko_idle", { fps: 4, charHeight: "var(--char-h)" });
+    const idle = () => {
+      const el = $("home-poko"), w = Hero.wearing();
+      el.classList.remove("hop");
+      if (w) { Hero.showStatic(el, w, "var(--char-h)"); el.classList.add("breathe"); }
+      else { el.classList.remove("breathe", "static"); Sprite.play(el, "poko_idle", { fps: 4, charHeight: "var(--char-h)" }); }
+    };
     const IMG_W = 1344, IMG_H = 752, HILL_X = 1000 / IMG_W, HILL_Y = 508 / IMG_H;
     function layout() {
       const W = window.innerWidth, H = window.innerHeight;
@@ -349,6 +357,7 @@
       // 7초마다 점프와 손 흔들기를 번갈아 (다양한 제스처)
       gestureTimer = setInterval(() => {
         const poko = $("home-poko");
+        if (Hero.wearing()) { poko.classList.remove("hop"); void poko.offsetWidth; poko.classList.add("hop"); return; }
         if (turn++ % 2 === 0) Sprite.play(poko, "poko_jump", { fps: 12, loop: false, charHeight: "var(--char-h)", arc: 40, onEnd: idle });
         else { Sprite.play(poko, "poko_wave", { fps: 4, charHeight: "var(--char-h)" }); setTimeout(idle, 2600); }
       }, 7000);
@@ -422,7 +431,9 @@
   function renderShop() {
     const d = Storage.load(); const h = d.hats || { owned: [], equipped: null };
     $("shop-coins").textContent = d.coins;
-    const pv = $("shop-poko"); if (!pv._sprite || pv.dataset.sprite !== Sprite.resolve("poko_idle")) Sprite.play(pv, "poko_idle", { fps: 4, charHeight: "140px" });
+    const pv = $("shop-poko"), pw = Hero.wearing();
+    if (pw) Hero.showStatic(pv, pw, "150px");
+    else { pv.classList.remove("static"); if (!pv._sprite || pv.dataset.sprite !== Sprite.resolve("poko_idle")) Sprite.play(pv, "poko_idle", { fps: 4, charHeight: "140px" }); }
     const eqName = h.equipped ? HATS.find((x) => x.id === h.equipped).name : null;
     const heroName = HEROES.find((x) => x.id === Storage.hero()).name;
     $("shop-preview-text").textContent = `${heroName}${eqName ? ` · ${eqName} 착용 중!` : " (모자를 골라 보세요)"}`;
@@ -539,7 +550,7 @@
     const goal = StageFX.GOALS[level];
     $("intro-stage").innerHTML = `<b>${u.icon} 스테이지 ${level} · ${u.name}</b><p>${u.desc}</p><p class="goal-line">🎯 이번 목표: <b>${goal.text}</b> <span>+20 코인</span></p>${feats ? `<div class="feat-list">${feats}</div>` : ""}`;
     show("intro");
-    Sprite.play($("intro-poko"), "poko_wave", { fps: 3, charHeight: "150px" });
+    { const ip = $("intro-poko"), iw = Hero.wearing(); if (iw) Hero.showStatic(ip, iw, "150px"); else { Sprite.detach(ip); ip.classList.remove("static"); Sprite.play(ip, "poko_wave", { fps: 3, charHeight: "150px" }); } }
     applyHat();
   }
 
@@ -617,7 +628,8 @@
 
     const rp = $("reward-poko");
     Sprite.detach(rp); rp.className = "poko sprite-box";
-    if (stars === 3 || (boss && boss.win)) Sprite.play(rp, "poko_dance", { fps: 5, charHeight: "190px" });
+    if (Hero.wearing()) Hero.showStatic(rp, Hero.wearing(), "190px");
+    else if (stars === 3 || (boss && boss.win)) Sprite.play(rp, "poko_dance", { fps: 5, charHeight: "190px" });
     else if (stars === 2) { rp.classList.add("static"); rp.style.backgroundImage = `url("${Hero.face("proud")}")`; rp.style.aspectRatio = Hero.aspect("proud", "361/512"); rp.style.height = "190px"; }
     else { rp.classList.add("static"); rp.style.backgroundImage = `url("${Hero.face("encourage")}")`; rp.style.aspectRatio = Hero.aspect("encourage", "508/512"); rp.style.height = "190px"; }
     applyHat();
@@ -664,7 +676,8 @@
       <div class="region ${doneToday.has(t.id) ? "lit" : ""}" style="background-image:url('${t.bg}');--i:${i}"><span>${t.world}</span></div>`).join("");
     const ep = $("end-poko");
     Sprite.detach(ep); ep.className = "poko sprite-box";
-    if (sleepy) { ep.classList.add("static"); ep.style.backgroundImage = `url("${Hero.face("sleepy")}")`; ep.style.aspectRatio = Hero.aspect("sleepy", "433/512"); ep.style.height = "170px"; }
+    if (Hero.wearing()) Hero.showStatic(ep, Hero.wearing(), "170px");
+    else if (sleepy) { ep.classList.add("static"); ep.style.backgroundImage = `url("${Hero.face("sleepy")}")`; ep.style.aspectRatio = Hero.aspect("sleepy", "433/512"); ep.style.height = "170px"; }
     else Sprite.play(ep, "poko_dance", { fps: 5, charHeight: "170px" });
     applyHat();
     show("end");
