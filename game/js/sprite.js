@@ -4,20 +4,23 @@ const Sprite = (() => {
   // slice_sprites.py 가 만든 sprites.json 과 동일한 메타 (file:// 실행을 위해 인라인)
   const META = {
     poko_run: { frames: 6, w: 285, h: 256, charRatio: 0.945 },
-    poko_jump: { frames: 6, w: 278, h: 256, charRatio: 0.918 },
+    poko_jump: { frames: 6, w: 250, h: 256, charRatio: 0.875 },
     poko_idle: { frames: 4, w: 187, h: 256, charRatio: 0.938 },
     star_idle: { frames: 4, w: 251, h: 256, charRatio: 0.914 },
     spiky_idle: { frames: 4, w: 312, h: 256, charRatio: 0.938 },
     poko_dance: { frames: 4, w: 215, h: 256, charRatio: 0.945 },
     poko_wave: { frames: 4, w: 214, h: 256, charRatio: 0.941 },
+    poko_duck: { frames: 4, w: 278, h: 256, charRatio: 0.934 },
+    spiky_run: { frames: 4, w: 271, h: 256, charRatio: 0.957 },
   };
   // 프레임별 머리 앵커 [x, y] (프레임 폭·높이 대비 비율). 모자는 이 점에 캐릭터 키 기준 크기로 얹힌다.
   const HEAD = {
     poko_idle: [[0.55, 0.14], [0.52, 0.21], [0.55, 0.14], [0.57, 0.15]],
     poko_wave: [[0.52, 0.13], [0.5, 0.12], [0.5, 0.14], [0.5, 0.12]],
     poko_dance: [[0.5, 0.19], [0.46, 0.15], [0.43, 0.2], [0.51, 0.15]],
-    poko_jump: [[0.6, 0.44], [0.58, 0.16], [0.58, 0.16], [0.62, 0.17], [0.58, 0.28], [0.6, 0.43]],
+    poko_jump: [[0.62, 0.3], [0.62, 0.2], [0.6, 0.12], [0.65, 0.15], [0.66, 0.3], [0.65, 0.3]],
     poko_run: [[0.63, 0.1], [0.63, 0.12], [0.63, 0.1], [0.63, 0.1], [0.63, 0.12], [0.63, 0.1]],
+    poko_duck: [[0.6, 0.12], [0.6, 0.42], [0.6, 0.4], [0.6, 0.12]],
   };
   const active = new Set();
   let paused = false;

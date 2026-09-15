@@ -132,7 +132,7 @@ def split_faces(name, rows, cols, names, out_dir, size=512):
 
 
 if __name__ == "__main__":
-    jobs = [("poko_run", 2, 3), ("poko_jump", 2, 3), ("poko_idle", 2, 2), ("star_idle", 2, 2), ("spiky_idle", 2, 2), ("poko_dance", 2, 2), ("poko_wave", 2, 2)]
+    jobs = [("poko_run", 2, 3), ("poko_jump", 2, 3), ("poko_idle", 2, 2), ("star_idle", 2, 2), ("spiky_idle", 2, 2), ("poko_dance", 2, 2), ("poko_wave", 2, 2), ("poko_duck", 2, 2), ("spiky_run", 2, 2)]
     meta = json.load(open(os.path.join(BASE, "sprites.json"))) if os.path.exists(os.path.join(BASE, "sprites.json")) else {}
     for name, r, c in jobs:
         if os.path.exists(os.path.join(BASE, f"_grid_{name}.png")):

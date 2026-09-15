@@ -13,9 +13,17 @@ const Adaptive = {
     return currentLevel;
   },
 
+  // 나이대별 조정: 시간 창(자극 제시·응답 제한·간격)만 배율로 늘리거나 줄인다.
+  //   6~8살 ×1.15 (조금 더 여유), 9~10살 ×1.0, 11~13살 ×0.9. 시행 수·비율·규칙은 그대로라 측정 구조는 같고,
+  //   결과에는 ageBand 가 함께 기록되어 같은 나이대끼리 비교한다.
+  age: null,
+  TIME_KEYS: ["stim", "isi", "limit", "show", "interval", "speed", "tempo", "gap"],
+  ageFactor() { return !this.age ? 1 : this.age <= 8 ? 1.15 : this.age <= 10 ? 1 : 0.9; },
   // 테스터 모드: 시행 수를 1/3로 줄인 파라미터 사본 (측정용 데이터에는 test 플래그가 붙는다)
   quick: false,
   tune(p) {
+    const f = this.ageFactor();
+    if (f !== 1) { p = { ...p }; for (const k of this.TIME_KEYS) if (typeof p[k] === "number") p[k] = Math.round(p[k] * f); }
     if (!this.quick) return p;
     const q = { ...p, quick: true };
     if (q.trials) q.trials = Math.max(6, Math.round(q.trials / 3));

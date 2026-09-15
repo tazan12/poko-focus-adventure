@@ -57,14 +57,14 @@ const TaskSearch = {
     ctx.stage.innerHTML = `<div class="cave" id="cave"></div>`;
     ctx.controls.innerHTML = `<div class="key-hint">별별이를 손가락/마우스로 직접 터치하세요</div>`;
     const cave = document.getElementById("cave");
-    const distractors = ["cloud", "moon", "planet"];
+    const distractors = level >= 3 ? ["cloud", "moon", "planet", "bunny", "squirrel", "owl"] : ["cloud", "moon", "planet"];
     const log = [];
     let cur = null;
 
     for (let i = 0; i < p.trials; i++) {
       const pos = this.layout(p.items);
       const fakes = level >= 8 ? 2 : 0;
-      const kinds = ["star_go", ...Array(p.spiky).fill("spiky_nogo"), ...Array(fakes).fill("star_fake"), ...Array.from({ length: p.items - 1 - p.spiky - fakes }, (_, k) => distractors[k % 3])];
+      const kinds = ["star_go", ...Array(p.spiky).fill("spiky_nogo"), ...Array(fakes).fill("star_fake"), ...Array.from({ length: p.items - 1 - p.spiky - fakes }, (_, k) => distractors[k % distractors.length])];
       cave.innerHTML = Stats.shuffle(kinds).map((k, j) => `
         <button class="cave-item ${p.drift ? "drift" : ""}" data-kind="${k}" style="left:${pos[j].x}%;top:${pos[j].y}%;--d:${(Math.random() * 2).toFixed(2)}s;--dx:${((Math.random() - 0.5) * 6).toFixed(1)}%;--dy:${((Math.random() - 0.5) * 6).toFixed(1)}%">
           <img src="assets/characters/${k === "star_fake" ? "star_go" : k}.png" alt=""></button>`).join("");

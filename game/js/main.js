@@ -36,7 +36,7 @@
     document.querySelectorAll(".hat-slot").forEach((el) => { if (id) { el.src = `assets/hats/${id}.png`; el.hidden = false; } else el.hidden = true; });
   }
   let queue = [], sessionMode = "session", currentTask = null, forcedLevel = null, stageTask = null;
-  let sessionCoins = 0, combo = 0, bestCombo = 0, sessionResults = [];
+  let sessionCoins = 0, combo = 0, bestCombo = 0, sessionResults = [], missionCoinBase = 0;
 
   function show(name) {
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
@@ -46,6 +46,7 @@
     if (name !== "reward") Sprite.stop($("reward-poko"));
     if (name !== "end") Sprite.stop($("end-poko"));
     if (name !== "shop") Sprite.stop($("shop-poko"));
+    if (name !== "rank") Rank.stop();
   }
   document.querySelectorAll("[data-go]").forEach((b) => b.addEventListener("click", () => { if (b.dataset.go === "home") renderHome(); show(b.dataset.go); }));
 
@@ -159,6 +160,121 @@
     },
   };
 
+  // ---------- 탐험대원 카드 (닉네임·나이) ----------
+  const Profile = (() => {
+    let after = null, age = null;
+    function open(next) {
+      after = next || null;
+      const p = Storage.load().profile || {}; age = p.age || null;
+      $("profile-title").textContent = p.name ? "탐험대원 카드" : "탐험대원 카드 만들기";
+      $("profile-name").value = p.name || "";
+      $("profile-ages").innerHTML = [6, 7, 8, 9, 10, 11, 12, 13].map((a) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${a}살</button>`).join("");
+      $("profile-ages").querySelectorAll(".age-chip").forEach((b) => b.addEventListener("click", () => { age = +b.dataset.age; $("profile-ages").querySelectorAll(".age-chip").forEach((x) => x.classList.toggle("on", x === b)); Audio.tick(); }));
+      const hasInviter = !!p.invitedBy;
+      $("profile-invite-field").hidden = hasInviter;
+      $("profile-invite").value = p.pendingInvite || "";
+      $("profile-cost").innerHTML = p.name
+        ? `이름을 바꾸면 <b>${Storage.RENAME_COST}코인</b>이 들어요 (보유 ${Storage.load().coins}코인). 나이는 언제든 무료로 고칠 수 있어요.${hasInviter ? `<br>💌 ${p.invitedBy}의 초대로 함께하고 있어요.` : ""}`
+        : `첫 이름은 <b>무료</b>! 다음부터 바꿀 때는 ${Storage.RENAME_COST}코인이 들어요.`;
+      $("profile-msg").textContent = "";
+      show("profile");
+      if (!p.name) setTimeout(() => $("profile-name").focus(), 300);
+    }
+    async function save() {
+      const name = $("profile-name").value.trim().replace(/\s+/g, " ");
+      const msg = $("profile-msg");
+      if (!name) { msg.textContent = "이름을 지어 주세요!"; return; }
+      if (name.length > 8) { msg.textContent = "이름은 8글자까지예요."; return; }
+      if (!age) { msg.textContent = "나이를 골라 주세요!"; return; }
+      const prev = Storage.load().profile || {};
+      const res = Storage.setProfile({ name, age });
+      if (!res.ok) { msg.textContent = `코인이 부족해요. 이름을 바꾸려면 ${Storage.RENAME_COST}코인이 필요해요.`; return; }
+      Adaptive.age = age;
+      const invite = ($("profile-invite").value || "").trim().toUpperCase() || null;
+      const btn = $("btn-profile-save"); btn.disabled = true; msg.textContent = "저장 중…";
+      let note = res.paid ? `이름을 바꿨어요 (−${res.paid}코인)` : `${name} 탐험대원, 환영해요!`;
+      try {
+        const r = Online.registered ? await Online.update(name, age, invite) : await Online.register(name, age, invite);
+        if (r && r.invited_by_name) note += ` 💌 ${r.invited_by_name}의 초대로 +${Online.INVITE_BONUS}코인!`;
+        else if (invite && !prev.invitedBy) note += " (초대코드를 찾지 못했어요)";
+      } catch (e) {
+        note += " — 인터넷이 연결되면 랭킹에 자동 등록돼요.";
+      }
+      btn.disabled = false;
+      Audio.jingle();
+      renderHome();
+      const n = $("home-notice"); n.textContent = note; n.hidden = false;
+      show("home");
+      if (after === "session") { after = null; $("btn-start-session").click(); }
+    }
+    $("btn-profile").addEventListener("click", () => { Audio.unlock(); open(); });
+    $("btn-profile-save").addEventListener("click", save);
+    $("profile-name").addEventListener("keydown", (e) => { if (e.key === "Enter") save(); });
+    return { open };
+  })();
+
+  // ---------- 이번 주 랭킹 + 친구 초대 ----------
+  const Rank = (() => {
+    let timer = null, data = null, tab = "all";
+    const medal = (i) => i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`;
+    function esc(t) { return String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); }
+    function row(x, i) { return `<div class="rank-row${x.me ? " me" : ""}"><span class="rk">${medal(i)}</span><span class="nm">${esc(x.name)}${x.me ? " (나)" : ""}</span><span class="bd">${x.band}</span><span class="pt">${x.points}점</span><span class="st">⭐${x.stars}</span></div>`; }
+    function renderList() {
+      const el = $("rank-list");
+      if (!data) return;
+      if (tab === "stats") {
+        const bands = ["6~8살", "9~10살", "11~13살"]; const st = data.band_stats || [];
+        const maxAvg = Math.max(1, ...st.map((b) => b.avg_points || 0));
+        el.innerHTML = `<div class="band-stats">${bands.map((b) => { const s = st.find((x) => x.band === b) || { players: 0, avg_points: 0, top: 0 };
+          return `<div class="band-row${b === data.band ? " mine" : ""}"><div class="band-name">${b}${b === data.band ? " · 내 나이대" : ""}</div><div class="band-bar"><i style="width:${Math.round((s.avg_points || 0) / maxAvg * 100)}%"></i></div><div class="band-meta">${s.players}명 · 평균 ${s.avg_points || 0}점 · 최고 ${s.top || 0}점</div></div>`; }).join("")}</div>
+          <p class="rank-hint">나이에 맞춰 놀이 속도가 조정되니, 같은 나이대끼리 비교하는 게 가장 공평해요.</p>`;
+        return;
+      }
+      const list = tab === "all" ? data.all : tab === "band" ? data.band_list : data.friends;
+      const empty = tab === "friends" ? "아직 함께하는 친구가 없어요. 아래 초대코드를 보내 보세요!" : "이번 주 첫 번째 탐험가가 되어 보세요!";
+      el.innerHTML = list.length ? list.map(row).join("") : `<p class="rank-empty">${empty}</p>`;
+    }
+    function renderMe() {
+      const p = Storage.load().profile || {};
+      const my = data ? `<div class="me-card"><div><small>${esc(p.name || "")} · ${data.band}</small><b>${data.my_points}점</b></div>
+        <div><small>전체 (${data.total}명)</small><b>${data.my_rank_all ? `${data.my_rank_all}위` : "-"}</b></div>
+        <div><small>내 나이대 (${data.band_total}명)</small><b>${data.my_rank_band ? `${data.my_rank_band}위` : "-"}</b></div></div>` : "";
+      $("rank-me").innerHTML = my;
+      const o = p.online;
+      $("invite-box").innerHTML = o ? `<div class="invite-card"><div><small>내 초대코드</small><b class="code">${o.code}</b><small>친구가 이 코드로 가입하면 둘 다 +${Online.INVITE_BONUS}코인 · 지금까지 ${p.invitedCount || 0}명</small></div><button class="btn btn-primary" id="btn-share">💌 친구에게 보내기</button></div>` : "";
+      const sb = $("btn-share"); if (sb) sb.addEventListener("click", share);
+    }
+    async function share() {
+      const p = Storage.load().profile || {};
+      const r = await Online.share(p.name);
+      const n = $("home-notice");
+      n.textContent = r === "copied" ? "초대 링크를 복사했어요! 메시지로 붙여넣어 보내 주세요." : r === "shared" ? "초대를 보냈어요!" : `초대코드 ${(p.online || {}).code} 를 친구에게 알려 주세요.`;
+      n.hidden = false;
+      if ($("screen-rank").classList.contains("active")) { $("rank-updated").textContent = n.textContent; }
+    }
+    async function refresh() {
+      if (!Online.registered) return;
+      $("rank-updated").textContent = "불러오는 중…";
+      try { data = await Online.rank(); renderMe(); renderList(); $("rank-updated").textContent = `${new Date().toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" })} 기준 · 30초마다 새로고침`; }
+      catch (e) { $("rank-updated").textContent = "지금은 랭킹을 불러올 수 없어요. 인터넷 연결을 확인해 주세요."; if (!data) $("rank-list").innerHTML = ""; }
+    }
+    function open() {
+      if (!Online.available) { const n = $("home-notice"); n.innerHTML = `랭킹·친구 초대는 정식 앱 주소에서 열려요 → <a href="${Online.SHARE_URL}" target="_blank" rel="noopener">tazan12.github.io/poko-focus-adventure</a>`; n.hidden = false; return; }
+      if (!Online.registered) { Profile.open("rank"); return; }
+      show("rank"); tab = "all";
+      $("rank-tabs").querySelectorAll(".rank-tab").forEach((b) => b.classList.toggle("active", b.dataset.tab === tab));
+      data = null; renderMe(); $("rank-list").innerHTML = "";
+      Online.submit().then(refresh);
+      clearInterval(timer); timer = setInterval(refresh, 30000);
+    }
+    function stop() { clearInterval(timer); timer = null; }
+    $("rank-tabs").addEventListener("click", (e) => { const b = e.target.closest(".rank-tab"); if (!b) return; tab = b.dataset.tab; $("rank-tabs").querySelectorAll(".rank-tab").forEach((x) => x.classList.toggle("active", x === b)); renderList(); Audio.tick(); });
+    $("btn-rank-refresh").addEventListener("click", refresh);
+    $("btn-rank").addEventListener("click", () => { Audio.unlock(); open(); });
+    $("btn-invite").addEventListener("click", () => { Audio.unlock(); if (!Online.available) { open(); return; } if (!Online.registered) { Profile.open(); return; } share(); });
+    return { open, stop, share };
+  })();
+
   // ---------- 홈 화면 ----------
   const Home = (() => {
     let raf = null, gestureTimer = null, parts = [], turn = 0;
@@ -227,6 +343,10 @@
   function renderHome() {
     const d = Storage.load();
     $("home-notice").hidden = true;
+    const pf = d.profile || {};
+    $("profile-chip-text").textContent = pf.name ? `${pf.name} · ${pf.age}살` : "이름 짓기 (무료)";
+    $("btn-profile").classList.toggle("empty", !pf.name);
+    $("home-subtitle").textContent = pf.name ? `${pf.name} 탐험대원, 오늘도 별을 모으러 가자!` : "집중의 힘으로 사라진 별을 되찾자!";
     const mins = Math.round(Storage.todaySeconds() / 60);
     const totalStars = Object.values(d.stages || {}).reduce((a, w) => a + Object.values(w).reduce((x, y) => x + y, 0), 0);
     $("home-stats").innerHTML = `
@@ -248,6 +368,7 @@
 
   $("btn-start-session").addEventListener("click", () => {
     Audio.unlock(); Audio.jingle();
+    if (!(Storage.load().profile || {}).name) { Profile.open("session"); return; }
     if (Storage.todaySeconds() >= DAILY_CAP_SEC) { const n = $("home-notice"); n.textContent = "오늘 훈련 시간(25분)을 다 채웠어요! 내일 다시 만나요 🌙"; n.hidden = false; return; }
     sessionMode = "session"; queue = sessionOrder(); sessionCoins = 0; sessionResults = []; forcedLevel = null;
     startNextMission();
@@ -367,6 +488,7 @@
     Music.play(currentTask.id, level);
     $("hud-mission").textContent = `${currentTask.name} · ${level}`;
     $("hud-coins").textContent = sessionCoins;
+    missionCoinBase = sessionCoins;
     $("screen-task").style.backgroundImage = `url('${currentTask.bg}')`;
     combo = 0; bestCombo = 0; updateCombo();
     aborted = false; pausedMs = 0;
@@ -409,8 +531,10 @@
     r.newLevel = newLevel; r.stars = stars;
     if (!forcedLevel) Storage.setLevel(r.task, newLevel);
     Storage.addStars(stars);
-    Storage.addCoins(sessionCoins);
+    const earned = Math.max(0, sessionCoins - missionCoinBase);
+    Storage.addCoins(earned);
     Storage.addDailySeconds(r.durationSec);
+    if (Adaptive.age) { r.age = Adaptive.age; r.ageBand = Online.ageBand(Adaptive.age); }
     Storage.addMissionResult(r);
     sessionResults.push(r);
     const newSticker = stars >= 2 && Storage.unlockSticker(r.task);
@@ -419,6 +543,9 @@
     const newBadge = boss && boss.win && boss.kind === "king" && Storage.unlockBadge(r.task);
     const goal = StageFX.GOALS[r.level]; const goalOk = goal && goal.check(r);
     if (goalOk) { Storage.addCoins(20); sessionCoins += 20; }
+    // 주간 탐험 점수: 별×20 + 이 미션에서 번 코인(목표 보너스 포함) → 랭킹 서버로
+    Storage.addWeekly(Online.weekKey(), stars * 20 + earned + (goalOk ? 20 : 0), stars);
+    Online.submit();
 
     Audio.fanfare();
     const stageMsg = unlockedNew ? `🔓 스테이지 ${nowUnlocked}이(가) 열렸어요!`
@@ -592,8 +719,21 @@
     .forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
   Object.values(TASKS).forEach((t) => { const i = new Image(); i.src = t.bg; });
 
-  ["spiky_king", "tent", "fruit", "bell"].forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
+  ["spiky_king", "tent", "fruit", "bell", "bunny", "squirrel", "owl"].forEach((n) => { const i = new Image(); i.src = `assets/characters/${n}.png`; });
   applyHat();
+  // 초대 링크(?invite=CODE)로 들어오면 코드를 기억해 두고 주소를 정리한다
+  try {
+    const code = new URLSearchParams(location.search).get("invite");
+    if (code) { const d = Storage.load(); if (!d.profile.invitedBy) d.profile.pendingInvite = code.toUpperCase().slice(0, 6); Storage.save(d); history.replaceState(null, "", location.pathname); }
+  } catch (e) { /* ignore */ }
+  Adaptive.age = (Storage.load().profile || {}).age || null;
   renderHome();
   Home.start();
+  // 지난번에 못 보낸 점수 전송 + 초대 성공 보상
+  Online.submit().then(() => Online.claimInvites()).then((n) => {
+    if (n > 0) { const el = $("home-notice"); el.textContent = `💌 초대한 친구 ${n}명이 탐험대에 들어왔어요! +${n * Online.INVITE_BONUS} 코인`; el.hidden = false; Audio.gold(); renderHome(); }
+  });
+  if ((Storage.load().profile || {}).pendingInvite && !(Storage.load().profile || {}).invitedBy) {
+    const el = $("home-notice"); el.textContent = "💌 친구의 초대를 받았어요! 이름을 지으면 둘 다 +50 코인"; el.hidden = false;
+  }
 })();

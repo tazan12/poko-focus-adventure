@@ -10,7 +10,8 @@ const Storage = (() => {
     if (!d || typeof d !== "object") return base;
     const out = { ...base, ...d };
     out.levels = { ...base.levels, ...(d.levels || {}) };
-    for (const k of ["daily", "stickers", "challenges", "stages", "badges"]) if (!out[k] || typeof out[k] !== "object") out[k] = {};
+    for (const k of ["daily", "stickers", "challenges", "stages", "badges", "weekly"]) if (!out[k] || typeof out[k] !== "object") out[k] = {};
+    out.profile = { ...base.profile, ...(d.profile || {}) };
     if (!Array.isArray(out.sessions)) out.sessions = [];
     if (!out.hats || !Array.isArray(out.hats.owned)) out.hats = { owned: [], equipped: null };
     return out;
@@ -29,6 +30,9 @@ const Storage = (() => {
       hats: { owned: [], equipped: null },
       badges: {},     // { task: true } 보스 배지
       tester: false,
+      // 탐험대원 카드: 닉네임·나이(난이도 조정용)·이름 변경 횟수·온라인 등록 정보(id/secret/초대코드)
+      profile: { name: "", age: null, nameChanges: 0, online: null, invitedBy: null, invitedCount: 0, pendingInvite: null },
+      weekly: {},     // { "2026-W38": { points, stars, missions } } 주간 탐험 점수 (랭킹용)
     };
   }
 
@@ -77,6 +81,21 @@ const Storage = (() => {
     },
     buyHat(id, price) { const d = load(); d.hats = d.hats || { owned: [], equipped: null }; if (d.hats.owned.includes(id) || d.coins < price) return false; d.coins -= price; d.hats.owned.push(id); d.hats.equipped = id; save(d); return true; },
     equipHat(id) { const d = load(); d.hats = d.hats || { owned: [], equipped: null }; d.hats.equipped = id; save(d); },
+    // 탐험대원 카드 저장. 첫 이름은 무료, 이후 이름 변경은 코인(RENAME_COST) 차감. 반환: { ok, reason }
+    RENAME_COST: 30,
+    setProfile({ name, age }) {
+      const d = load(); const p = d.profile;
+      const renaming = p.name && name && name !== p.name;
+      if (renaming) { if (d.coins < this.RENAME_COST) return { ok: false, reason: "coins" }; d.coins -= this.RENAME_COST; p.nameChanges = (p.nameChanges || 0) + 1; }
+      if (name) p.name = name;
+      if (age) p.age = age;
+      save(d); return { ok: true, paid: renaming ? this.RENAME_COST : 0 };
+    },
+    // 주간 탐험 점수 누적 (미션마다 별×20 + 그 미션에서 번 코인)
+    addWeekly(week, points, stars) {
+      const d = load(); d.weekly = d.weekly || {}; const w = d.weekly[week] || { points: 0, stars: 0, missions: 0 };
+      w.points += points; w.stars += stars; w.missions += 1; d.weekly[week] = w; save(d); return w;
+    },
     unlockBadge(task) { const d = load(); d.badges = d.badges || {}; if (d.badges[task]) return false; d.badges[task] = true; save(d); return true; },
     setTester(on) { const d = load(); d.tester = on; save(d); },
     // 연속 출석일 (오늘 포함, 오늘 기록이 없으면 어제까지)
