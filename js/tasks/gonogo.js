@@ -104,8 +104,19 @@ const TaskGoNoGo = {
     runAnim();
     // 잡기 = 제자리에서 손을 뻗어 안기(점프 아님) / 점프 = 포물선 / 숙이기 = 납작
     const catchAnim = () => Sprite.play(poko, "poko_catch", { fps: 10, loop: false, charHeight: CHAR_H, onEnd: runAnim });
-    const jump = () => Sprite.play(poko, "poko_jump", { fps: 14, loop: false, charHeight: CHAR_H, arc: 70, onEnd: runAnim });
-    const duck = () => Sprite.play(poko, "poko_duck", { fps: 10, loop: false, charHeight: CHAR_H, onEnd: runAnim });
+    // 점프·숙이기는 장애물 도착 시점(arrival ms 뒤)에 맞춰 길이를 정한다 → 정점에서 통나무가 발밑을 지나고, 꿀벌이 지날 때까지 숙인다
+    const land = () => {
+      const P = poko.getBoundingClientRect(); Fx.burst(P.left + P.width * 0.5, P.bottom - 6, "#e8dcc0", 7);
+      poko.classList.remove("land"); void poko.offsetWidth; poko.classList.add("land"); setTimeout(() => poko.classList.remove("land"), 260);
+    };
+    const jump = (arrival = 0) => {
+      const D = Math.max(480, Math.min(1100, 2 * Math.max(arrival, 240))); // 정점 = 도착 시점
+      Sprite.play(poko, "poko_jump", { fps: 6000 / D, loop: false, charHeight: CHAR_H, arc: 95, onEnd: () => { runAnim(); land(); } });
+    };
+    const duck = (arrival = 0) => {
+      const D = Math.max(500, Math.min(1400, arrival + 380)); // 꿀벌이 지나갈 때까지 납작하게
+      Sprite.play(poko, "poko_duck", { fps: 4000 / D, loop: false, charHeight: CHAR_H, onEnd: runAnim });
+    };
     const lean = () => { poko.classList.remove("lean"); void poko.offsetWidth; poko.classList.add("lean"); setTimeout(() => poko.classList.remove("lean"), 500); };
     const oops = () => { poko.classList.add("oops"); setTimeout(() => poko.classList.remove("oops"), 500); };
     const trip = () => { poko.classList.remove("trip"); void poko.offsetWidth; poko.classList.add("trip"); setTimeout(() => poko.classList.remove("trip"), 950); };
@@ -128,9 +139,11 @@ const TaskGoNoGo = {
       cur.pressed = action;
       cur.rt = Math.round(performance.now() - cur.onset);
       const { t, wrap, el } = cur;
-      if (action === "catch") catchAnim(); else if (action === "jump") jump(); else duck();
+      const early = t.go && (t.action === "jump" || t.action === "duck") && action === t.action && cur.rt < cur.window * ZONE;
+      const arrival = early ? 0 : Math.max(0, cur.window - cur.rt);
+      if (action === "catch") catchAnim(); else if (action === "jump") jump(arrival); else duck(arrival);
       // 타이밍 동작(점프·숙이기)이 너무 일찍 나오면 동작만 하고 결과는 장애물 도착 때 판정한다 (넘어짐)
-      if (t.go && (t.action === "jump" || t.action === "duck") && action === t.action && cur.rt < cur.window * ZONE) { cur.early = true; return; }
+      if (early) { cur.early = true; return; }
       if (t.go && t.action === action) {
         if (action === "catch") {
           // 잡기 적중: 상대가 주인공 품으로 빨려 들어온 뒤 반짝 터진다
@@ -146,9 +159,9 @@ const TaskGoNoGo = {
           else if (quick) ctx.hit(el, { msg: "번개 판단!", bonus: 1 });
           else ctx.hit(el, { msg: "잡았다!" });
         } else {
-          // 점프/숙이기 적중: 장애물이 발밑/머리 위로 지나간다
+          // 점프/숙이기 적중: 장애물이 발밑/머리 위로 지나가는 순간에 칭찬 (도착 시점에 맞춰)
           wrap.classList.add(action === "jump" ? "under" : "over");
-          ctx.hit(el, { msg: action === "jump" ? "뛰어넘었다!" : "숙였다!" });
+          setTimeout(() => { if (wrap.isConnected) ctx.hit(el, { msg: action === "jump" ? "뛰어넘었다!" : "숙였다!" }); }, Math.max(0, arrival - 60));
         }
       } else if (!t.go) {
         // 오경보: 참아야 할 상대를 건드림 → 부딪혀 튕겨남
