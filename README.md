@@ -2,9 +2,13 @@
 
 근거 기반으로 설계한 웹 브라우저용 집중력 훈련 게임입니다. (개발 문서에는 ADHD 관련 근거를 기록하지만, 게임 화면에는 해당 용어가 나타나지 않습니다.) 캐릭터는 Higgsfield(GPT Image 2.5)로 생성했습니다.
 
-## 실행 방법
-1. `game/index.html`을 브라우저(Chrome/Edge)에서 더블클릭해 열면 바로 실행됩니다. 설치 필요 없음.
-2. 또는 로컬 서버: `cd game && python -m http.server 8000` → http://localhost:8000
+## 바로 플레이 / 설치
+- **공개 주소(휴대폰·PC)**: https://tazan12.github.io/poko-focus-adventure/ — Android는 홈 화면의 "📲 앱으로 설치", iPhone은 Safari 공유 → "홈 화면에 추가". 한 번 열면 오프라인에서도 실행됩니다.
+- 저장소: https://github.com/tazan12/poko-focus-adventure
+- 로컬: `game/index.html` 더블클릭, 또는 `cd game && python -m http.server 8000`
+
+## 재배포
+`bash tools/deploy.sh "메시지"` — 서비스워커 캐시 목록 갱신 → main 푸시 → `game/`를 `gh-pages`로 발행 (GitHub Pages).
 
 ## 폴더 구조
 ```
