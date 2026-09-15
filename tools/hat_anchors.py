@@ -17,26 +17,49 @@ KINDS = ["idle", "run", "jump", "catch", "duck"]
 FH = 256
 
 
+def longest_run(row):
+    """행에서 가장 긴 연속 불투명 구간 (시작, 길이)"""
+    best = (0, 0); start = None
+    for i, v in enumerate(list(row) + [False]):
+        if v and start is None: start = i
+        elif not v and start is not None:
+            if i - start > best[1]: best = (start, i - start)
+            start = None
+    return best
+
+
 def anchor(mask, side):
+    """머리 앵커 [x, y, scale]. 귀·뿔처럼 갈라진 돌출부는 건너뛰고 '한 덩어리로 충분히 넓은 첫 행'을 머리 꼭대기로 본다.
+    scale = 그 행 바로 아래 머리 폭 / 기준 폭(0.42×프레임 높이) → 머리가 작은 캐릭터는 모자도 작게."""
+    H, W = mask.shape
     cols = np.where(mask.any(axis=0))[0]
     x0, x1 = cols[0], cols[-1]
     bw = x1 - x0 + 1
     if side: rx0, rx1 = x0 + int(bw * 0.45), x1 + 1
     else: rx0, rx1 = x0 + int(bw * 0.22), x0 + int(bw * 0.78)
     reg = mask[:, rx0:rx1]
-    rows = np.where(reg.sum(axis=1) >= 0.32 * (rx1 - rx0))[0]
-    top = rows[0] if len(rows) else np.where(mask.any(axis=1))[0][0]
-    y = min(mask.shape[0] - 1, top + 6)
-    xs = np.where(reg[y])[0]
-    cx = rx0 + (xs[0] + xs[-1]) / 2 if len(xs) else (rx0 + rx1) / 2
-    return round(cx / mask.shape[1], 2), round(top / mask.shape[0], 2)
+    rw = rx1 - rx0
+    top = None
+    for y in range(H):
+        st, ln = longest_run(reg[y])
+        if ln >= 0.45 * rw: top = y; break
+    if top is None: top = np.where(mask.any(axis=1))[0][0]
+    # 머리 폭: 꼭대기에서 조금 내려간 행의 가장 긴 구간 (전체 행 기준)
+    yy = min(H - 1, top + int(H * 0.08))
+    st, ln = longest_run(reg[yy])
+    cx = rx0 + st + ln / 2
+    scale = max(0.75, min(1.15, (ln / H) / 0.42))
+    return round(cx / W, 2), round(top / H, 2), round(scale, 2)
 
 
 def face_anchor(path):
     """HUD 얼굴 이미지 위 모자 위치 [left%, top%]"""
     im = Image.open(path).convert("RGBA")
-    x, y = anchor(np.array(im)[:, :, 3] > 40, side=False)
-    return [round(x * 100), round(y * 100)]
+    mask = np.array(im)[:, :, 3] > 40
+    x, y, sc = anchor(mask, side=False)
+    # 얼굴 이미지는 머리가 화면 대부분이라 기준 폭을 따로 둔다 (머리 폭 ≈ 이미지 높이의 0.8 → 1.0)
+    H = mask.shape[0]; yy = min(H - 1, int(y * H) + int(H * 0.08)); st, ln = longest_run(mask[yy])
+    return [round(x * 100), round(y * 100), round(max(0.8, min(1.2, (ln / H) / 0.8)), 2)]
 
 
 if __name__ == "__main__":
