@@ -14,6 +14,7 @@ const Storage = (() => {
     out.profile = { ...base.profile, ...(d.profile || {}) };
     if (!Array.isArray(out.sessions)) out.sessions = [];
     if (!out.hats || !Array.isArray(out.hats.owned)) out.hats = { owned: [], equipped: null };
+    if (!out.heroes || !Array.isArray(out.heroes.owned)) out.heroes = { owned: ["poko"], selected: "poko" };
     return out;
   }
 
@@ -28,6 +29,7 @@ const Storage = (() => {
       challenges: {}, // { 'YYYY-MM-DD': true } 오늘의 도전 달성
       stages: {},     // { task: { level: bestStars } } 스테이지별 최고 별
       hats: { owned: [], equipped: null },
+      heroes: { owned: ["poko"], selected: "poko" }, // 주인공 캐릭터 (포코는 기본, 나머지는 코인으로)
       badges: {},     // { task: true } 보스 배지
       tester: false,
       // 탐험대원 카드: 닉네임·나이(난이도 조정용)·이름 변경 횟수·온라인 등록 정보(id/secret/초대코드)
@@ -75,11 +77,16 @@ const Storage = (() => {
       const d = load();
       if (d.tester) return 10;
       const st = ((d.stages || {})[task]) || {};
-      let m = 1;
+      let m = (d.profile && d.profile.age >= 14) ? 3 : 1;
       for (let l = 1; l <= 10; l++) if ((st[l] || 0) >= 2) m = Math.min(10, l + 1);
       return m;
     },
     buyHat(id, price) { const d = load(); d.hats = d.hats || { owned: [], equipped: null }; if (d.hats.owned.includes(id) || d.coins < price) return false; d.coins -= price; d.hats.owned.push(id); d.hats.equipped = id; save(d); return true; },
+    buyHero(id, price) { const d = load(); if (d.heroes.owned.includes(id) || d.coins < price) return false; d.coins -= price; d.heroes.owned.push(id); d.heroes.selected = id; save(d); return true; },
+    selectHero(id) { const d = load(); if (!d.heroes.owned.includes(id) && !d.tester) return false; d.heroes.selected = id; save(d); return true; },
+    hero() { const d = load(); return d.heroes.selected || "poko"; },
+    // 14살 이상은 1~3스테이지가 처음부터 열려 있고(가벼운 초반 건너뛰기), 레벨도 3에서 시작
+    bumpLevels(min) { const d = load(); for (const k of Object.keys(d.levels)) d.levels[k] = Math.max(d.levels[k], min); save(d); },
     equipHat(id) { const d = load(); d.hats = d.hats || { owned: [], equipped: null }; d.hats.equipped = id; save(d); },
     // 탐험대원 카드 저장. 첫 이름은 무료, 이후 이름 변경은 코인(RENAME_COST) 차감. 반환: { ok, reason }
     RENAME_COST: 30,

@@ -839,3 +839,15 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .rank-tab { font-size: 0.82rem; padding: 7px 8px; }
   .profile-chip { font-size: 0.88rem; }
 }
+
+/* ===================== 캐릭터 고르기 · 스피드 도전 ===================== */
+.shop-sub { margin: 14px 0 4px; font-size: 1.05rem; color: var(--ink); text-align: left; }
+.hero-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 12px; margin: 8px 0 4px; }
+.hero-card img { width: 96px; height: 96px; }
+.hero-card small { color: var(--muted); font-size: 0.78rem; line-height: 1.2; }
+.hero-card.equipped { background: linear-gradient(160deg, #fff7e0, #ffe9b8); }
+.stages-guide { flex-wrap: wrap; }
+.stage-speed { font-size: 0.9rem; padding: 8px 14px; }
+.stage-speed small { display: block; font-size: 0.72rem; opacity: 0.85; font-weight: 400; }
+.stage-speed.on { background: #ffd24d; color: #4a3200; border-color: #fff; box-shadow: 0 0 16px rgba(255, 210, 77, 0.7); }
+@media (max-width: 600px) { .hero-grid { grid-template-columns: repeat(2, 1fr); } .hero-card img { width: 72px; height: 72px; } }

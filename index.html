@@ -43,7 +43,7 @@
       <button class="btn btn-primary btn-big btn-shine" id="btn-start-session">오늘의 탐험 시작</button>
       <div class="home-row">
         <button class="btn btn-glass" id="btn-free-play">🗺 세계 고르기</button>
-        <button class="btn btn-glass" id="btn-shop">🎩 포코 꾸미기</button>
+        <button class="btn btn-glass" id="btn-shop">🎩 캐릭터 꾸미기</button>
         <button class="btn btn-glass" id="btn-report">📊 보호자 리포트</button>
       </div>
       <div class="home-row">
@@ -71,9 +71,12 @@
 <section id="screen-shop" class="screen">
   <canvas id="shop-confetti" class="confetti"></canvas>
   <div class="panel shop-panel">
-    <h2>🎩 포코 꾸미기</h2>
-    <div class="shop-preview"><div id="shop-poko" class="sprite-box"><img class="hat-slot box-hat" alt="" hidden></div><p id="shop-preview-text">모자를 골라 보세요</p></div>
-    <p class="report-note">미션에서 모은 코인으로 모자를 사요. 보유 코인: <b id="shop-coins">0</b> 🪙</p>
+    <h2>🎩 탐험대원 꾸미기</h2>
+    <div class="shop-preview"><div id="shop-poko" class="sprite-box"><img class="hat-slot box-hat" alt="" hidden></div><p id="shop-preview-text">캐릭터와 모자를 골라 보세요</p></div>
+    <p class="report-note">미션에서 모은 코인으로 캐릭터와 모자를 사요. 보유 코인: <b id="shop-coins">0</b> 🪙</p>
+    <h3 class="shop-sub">🦊 캐릭터 고르기</h3>
+    <div class="hero-grid" id="hero-grid"></div>
+    <h3 class="shop-sub">🎩 모자</h3>
     <div class="shop-grid" id="shop-grid"></div>
     <p class="shop-msg" id="shop-msg"></p>
     <button class="btn btn-ghost" data-go="home">← 돌아가기</button>

@@ -25,7 +25,7 @@ const Online = (() => {
     const w = Math.ceil(((x - y0) / 86400000 + 1) / 7);
     return `${x.getUTCFullYear()}-W${String(w).padStart(2, "0")}`;
   }
-  function ageBand(age) { return age <= 8 ? "6~8살" : age <= 10 ? "9~10살" : "11~13살"; }
+  function ageBand(age) { return age <= 8 ? "6~8살" : age <= 10 ? "9~10살" : age <= 13 ? "11~13살" : age <= 17 ? "14~17살" : "어른"; }
 
   const me = () => (Storage.load().profile || {}).online || null;
   // claude.ai 아티팩트 미리보기에서는 외부 요청이 막혀 있어 온라인 기능을 끄고 안내만 한다
