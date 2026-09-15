@@ -869,3 +869,17 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 @keyframes breathe { 50% { transform: scaleY(1.025) scaleX(0.99); } }
 .sprite-box.static.hop { animation: home-hop 0.7s cubic-bezier(0.3, 1.4, 0.5, 1) both; transform-origin: bottom center; }
 @keyframes home-hop { 0% { transform: none; } 35% { transform: translateY(-14%) scaleY(1.04); } 70% { transform: translateY(0) scaleY(0.96); } 100% { transform: none; } }
+
+/* ===================== 하트(목숨) · 실패 화면 ===================== */
+.hud-lives { display: inline-flex; gap: 3px; margin-left: 8px; }
+.hud-lives i { width: 16px; height: 16px; display: inline-block; background: #ff5c7a; clip-path: path("M8 15 L1.5 8.5 A3.8 3.8 0 0 1 8 3.5 A3.8 3.8 0 0 1 14.5 8.5 Z"); filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4)); transition: transform 0.2s, opacity 0.2s; }
+.hud-lives i.off { background: rgba(255,255,255,0.25); transform: scale(0.85); }
+.hud-lives.shake { animation: lives-shake 0.45s ease-out; }
+@keyframes lives-shake { 20% { transform: translateX(-4px); } 40% { transform: translateX(4px); } 60% { transform: translateX(-3px); } 80% { transform: translateX(3px); } }
+.fail-panel h2 { color: #c0392b; }
+/* 러너: 타이밍을 놓쳐 넘어지는 동작, 장애물이 뛰어넘을 구간에 들어오면 반짝 */
+.runner-poko.trip { animation: trip 0.9s ease-out both; }
+@keyframes trip { 0% { transform: none; } 25% { transform: rotate(-35deg) translateX(-6%); } 45% { transform: rotate(-80deg) translate(-12%, 6%); } 70% { transform: rotate(-80deg) translate(-12%, 6%); } 100% { transform: none; } }
+.runner-critter.ready .critter { filter: drop-shadow(0 0 10px #fff) drop-shadow(0 0 18px #ffd24d) brightness(1.15); }
+.runner-critter.ready::after { content: "지금!"; position: absolute; left: 50%; top: -28%; transform: translateX(-50%); font-family: "Jua", sans-serif; color: #ffd24d; font-size: 1.1rem; text-shadow: 0 2px 6px rgba(0,0,0,0.6); animation: bump 0.5s ease-out infinite alternate; }
+@media (max-width: 600px) { .hud-lives i { width: 13px; height: 13px; } .runner-critter.ready::after { font-size: 0.9rem; } }

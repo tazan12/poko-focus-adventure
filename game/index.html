@@ -117,7 +117,7 @@
 <section id="screen-task" class="screen">
   <div class="hud">
     <div class="hud-left"><span class="hud-avatar"><img id="hud-poko" class="hud-poko" src="assets/characters/poko_neutral.png" alt=""><img class="hat-slot hud-hat" alt="" hidden></span><span id="hud-mission"></span></div>
-    <div class="hud-center"><div class="progress"><div id="hud-progress" class="progress-fill"></div></div><span id="hud-combo" class="hud-combo"></span><span id="hud-items" class="hud-items"></span></div>
+    <div class="hud-center"><div class="progress"><div id="hud-progress" class="progress-fill"></div></div><span id="hud-lives" class="hud-lives" title="하트"></span><span id="hud-combo" class="hud-combo"></span><span id="hud-items" class="hud-items"></span></div>
     <div class="hud-right"><img id="hud-coin-icon" src="assets/characters/coin.png" class="hud-coin" alt=""><span id="hud-coins">0</span>
       <button class="btn-music hud" id="btn-music-hud" data-music-toggle title="음악 끄기" aria-label="음악 켜기/끄기"><svg class="ic ic-on" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16 8.5a4.5 4.5 0 0 1 0 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M18.5 5.5a8.5 8.5 0 0 1 0 13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><svg class="ic ic-off" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 9.5l5 5M21.5 9.5l-5 5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></svg></button>
       <button class="btn-pause" id="btn-pause" title="잠깐 멈춤 (Esc)" aria-label="잠깐 멈춤"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4.5" height="14" rx="1.5"/><rect x="13.5" y="5" width="4.5" height="14" rx="1.5"/></svg></button></div>
@@ -160,6 +160,20 @@
     <div id="reward-boss"></div>
     <div class="reward-sticker" id="reward-sticker"></div>
     <button class="btn btn-primary btn-big" id="btn-reward-next">다음으로</button>
+  </div>
+</section>
+
+<!-- 미션 실패 (하트 소진) -->
+<section id="screen-fail" class="screen">
+  <div class="panel reward-panel fail-panel">
+    <div id="fail-poko" class="poko sprite-box"><img class="hat-slot box-hat" alt="" hidden></div>
+    <h2 id="fail-title">앗, 하트가 다 떨어졌어!</h2>
+    <p id="fail-msg"></p>
+    <div class="reward-stats" id="fail-stats"></div>
+    <div class="home-row">
+      <button class="btn btn-primary btn-big" id="btn-fail-retry">다시 도전!</button>
+      <button class="btn btn-ghost" id="btn-fail-map">스테이지 지도로</button>
+    </div>
   </div>
 </section>
 
