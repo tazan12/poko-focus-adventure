@@ -79,7 +79,14 @@ const TaskTrail = {
             b.classList.add("lit");
             if (i > 0) { const a = pos[i - 1], c = pos[i]; const ln = document.createElementNS("http://www.w3.org/2000/svg", "line"); ln.setAttribute("x1", a.x); ln.setAttribute("y1", a.y); ln.setAttribute("x2", c.x); ln.setAttribute("y2", c.y); lines.appendChild(ln); }
             me.next++;
-            if (me.next === seq.length) { me.done = true; const cc = Fx.center(b); Fx.burst(cc.x, cc.y, "#ffb7d5", 16); ctx.hit(b, { msg: "별자리 완성!", bonus: me.errors === 0 ? 2 : 0 }); setTimeout(res, 700); }
+            if (me.next === seq.length) {
+              // 별자리 완성: 등불이 차례로 "팡" 터지는 불꽃놀이 (등불 자체는 움직이지 않는다)
+              me.done = true; ctx.hit(b, { msg: "별자리 완성!", bonus: me.errors === 0 ? 2 : 0 });
+              const ls = [...garden.querySelectorAll(".lantern")];
+              ls.forEach((l, k) => setTimeout(() => { if (!l.isConnected) return; const cc = Fx.center(l); Fx.burst(cc.x, cc.y, ["#ffd24d", "#ffb7d5", "#8de0ff", "#c9a0ff"][k % 4], 14); l.classList.add("firework"); Audio.tone(520 + k * 40, 0.09, "triangle", 0.05); }, 90 + k * 70));
+              setTimeout(() => { const cc = Fx.center(garden); Fx.burst(cc.x, cc.y - 20, "#fff4b8", 30); Audio.fanfare(); }, 120 + ls.length * 70);
+              setTimeout(res, 900 + ls.length * 70);
+            }
             else { Audio.tick(); const cc = Fx.center(b); Fx.burst(cc.x, cc.y, "#ffd24d", 5); }
           } else {
             me.errors++; b.classList.add("bonk"); setTimeout(() => b.classList.remove("bonk"), 400);

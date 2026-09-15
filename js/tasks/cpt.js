@@ -38,7 +38,8 @@ const TaskCPT = {
         <div class="demo-item go"><img src="assets/characters/star_go.png" alt="">잡기!</div>
         <div class="demo-item nogo"><img src="assets/characters/cloud.png" alt="">지켜보기</div>
         <div class="demo-item nogo"><img src="assets/characters/moon.png" alt="">지켜보기</div>
-        <div class="demo-item nogo"><img src="assets/characters/planet.png" alt="">지켜보기</div>`,
+        <div class="demo-item nogo"><img src="assets/characters/planet.png" alt="">지켜보기</div>
+        ${level >= 4 ? `<div class="demo-item nogo"><img src="assets/characters/bunny.png" alt="">지켜보기</div>` : ""}`,
     };
   },
 
@@ -65,9 +66,9 @@ const TaskCPT = {
   async run(ctx, level) {
     const p = Adaptive.tune(this.levelParams(level));
     const nTrials = Math.round((p.sec * 1000) / (p.stim + p.isi));
-    const distractors = ["cloud", "moon", "planet"];
+    const distractors = level >= 4 ? ["cloud", "moon", "planet", "bunny", "squirrel", "owl"] : ["cloud", "moon", "planet"];
     const nTarget = Math.round(nTrials * p.target);
-    const seq = Stats.shuffle([...Array(nTarget).fill("star_go"), ...Array.from({ length: nTrials - nTarget }, (_, i) => distractors[i % 3])]);
+    const seq = Stats.shuffle([...Array(nTarget).fill("star_go"), ...Array.from({ length: nTrials - nTarget }, (_, i) => distractors[i % distractors.length])]);
     const goldRate = StageFX.has(level, "gold") ? 0.15 : 0.07;
     const goldAt = new Set(seq.map((v, i) => v === "star_go" && Math.random() < goldRate ? i : -1).filter((i) => i >= 0));
     const pts = this.constellation(nTarget, level);

@@ -585,6 +585,8 @@ p { line-height: 1.5; }
 .lantern { position: absolute; transform: translate(-50%, -50%); width: min(9vh, 13vw, 72px); height: min(9vh, 13vw, 72px); border-radius: 50%; border: 3px solid #fff; background: radial-gradient(circle at 40% 30%, #ffd6e8, #ff7fb0 70%); color: #6a1a3a; font-family: "Jua", sans-serif; font-size: 1.5rem; cursor: pointer; box-shadow: 0 6px 14px rgba(0,0,0,0.4); animation: pop-in 0.25s cubic-bezier(0.2, 1.4, 0.4, 1) both; animation-delay: var(--d, 0s); }
 .lantern.lit { background: radial-gradient(circle at 40% 30%, #fff7c2, #ffd24d 70%); color: #5a3d00; box-shadow: 0 0 22px #ffd24d; }
 .lantern.bonk { animation: bonk 0.4s ease-out both; }
+.lantern.firework { animation: lantern-pang 0.7s ease-out both; }
+@keyframes lantern-pang { 0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 22px #ffd24d; } 35% { transform: translate(-50%, -50%) scale(1.5); box-shadow: 0 0 0 18px rgba(255, 244, 184, 0.55), 0 0 60px #fff4b8; filter: brightness(1.8); } 100% { transform: translate(-50%, -50%) scale(1.05); box-shadow: 0 0 0 40px rgba(255, 244, 184, 0), 0 0 30px #ffd24d; filter: none; } }
 .trail-demo { display: flex; gap: 6px; }
 .trail-demo span { width: 40px; height: 40px; border-radius: 50%; background: #ff7fb0; color: #fff; font-family: "Jua", sans-serif; display: flex; align-items: center; justify-content: center; }
 
@@ -751,4 +753,89 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
   .runner-poko, .pond-poko { --char-h: 30%; }
   .potion-btn img, .potion-liquid, .potion-btn::after { width: 56px; height: 56px; } .potion-btn { width: 60px; }
   .bell { width: 12vh; } .fruit { width: 22vh; }
+}
+
+/* ===================== 반짝 숲 달리기 v2: 친구들이 포코를 향해 달려온다 ===================== */
+.runner-lane { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.runner-critter { position: absolute; left: 100%; bottom: 22%; width: 16%; aspect-ratio: 1; animation: run-in var(--dur, 2000ms) linear forwards; will-change: left; }
+.runner-critter.owl { bottom: 46%; }
+.runner-critter.stop { animation-play-state: paused; }
+.runner-critter.pull { transition: transform 0.22s ease-in; transform: translate(var(--dx, 0), var(--dy, 0)) scale(0.6); }
+.runner-critter.pull .critter.caught { animation-delay: 0.12s; }
+.runner-critter.fog { animation: run-in var(--dur, 2000ms) linear forwards, defog var(--dur, 2000ms) linear both; }
+#screen-task.paused .runner-critter { animation-play-state: paused; }
+@keyframes run-in { to { left: -25%; } }
+@keyframes defog { 0% { filter: blur(7px) brightness(0.6); opacity: 0.45; } 45% { filter: blur(4px) brightness(0.8); opacity: 0.7; } 62%, 100% { filter: none; opacity: 1; } }
+.critter.hop { animation: hop 0.5s ease-in-out infinite; }
+@keyframes hop { 50% { transform: translateY(-16%); } }
+.critter.flap { animation: flap 0.6s ease-in-out infinite; }
+@keyframes flap { 50% { transform: translateY(-14%) rotate(-5deg); } }
+/* 심술이가 스쳐 지나가는 모션: 혀를 내밀고 폴짝 뛰어 옆으로 */
+.critter.taunt { animation: taunt 0.6s ease-out both !important; }
+@keyframes taunt { 0% { transform: none; } 35% { transform: translateY(-60%) rotate(-18deg) scale(1.12); } 70% { transform: translateY(-12%) rotate(8deg); } 100% { transform: none; } }
+.critter.wink { animation: wink 0.5s ease-out both !important; }
+@keyframes wink { 50% { transform: scale(1.15) rotate(-10deg); } }
+.runner-poko.lean { animation: lean 0.5s ease-out both; }
+@keyframes lean { 30% { transform: rotate(-16deg) translateX(-7%); } 100% { transform: none; } }
+.tap-btn.duck { background: #3f8cff; box-shadow: 0 8px 0 #2a5fb3; }
+.tap-btn.duck:active { box-shadow: 0 4px 0 #2a5fb3; }
+.intro-demo .duck { color: #2a5fb3; }
+@media (max-width: 600px) { .runner-critter { width: 22%; } .task-controls .tap-btn.duck { padding: 14px 22px; } }
+@media (prefers-reduced-motion: reduce) { .critter.hop, .critter.flap { animation: none; } }
+
+/* ===================== 탐험대원 카드 · 랭킹 · 초대 ===================== */
+.profile-chip { display: inline-flex; align-items: center; gap: 8px; margin: 2px 0 6px; padding: 6px 14px 6px 8px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.5); background: rgba(14, 16, 44, 0.45); color: #fff; font-weight: 800; font-size: 0.95rem; cursor: pointer; backdrop-filter: blur(6px); transition: transform 0.15s, background 0.15s; }
+.profile-chip:hover { transform: translateY(-1px); background: rgba(255,255,255,0.25); }
+.profile-chip .pc-face { width: 26px; height: 26px; border-radius: 50%; background: #ffd24d; display: inline-flex; align-items: center; justify-content: center; font-size: 0.95rem; }
+.profile-chip { position: relative; }
+.profile-chip.empty { background: rgba(255, 210, 77, 0.92); color: #4a3200; border-color: #fff; }
+/* 홈 패널의 등장 애니메이션(.home-panel.enter > *)과 충돌하지 않도록 반짝임은 가상 요소에 */
+.profile-chip.empty::after { content: ""; position: absolute; inset: -3px; border-radius: 999px; pointer-events: none; animation: chip-glow 1.6s ease-in-out infinite; }
+@keyframes chip-glow { 50% { box-shadow: 0 0 0 6px rgba(255, 210, 77, 0.35); } }
+.profile-panel { width: min(520px, 100%); text-align: left; }
+.profile-panel h2 { text-align: center; }
+.field { display: flex; flex-direction: column; gap: 6px; margin: 12px 0; font-weight: 700; color: var(--ink); }
+.field small { color: var(--muted); font-weight: 400; }
+.field input { font: inherit; font-size: 1.2rem; padding: 12px 14px; border-radius: 14px; border: 2px solid #e6e8f2; outline: none; background: #fff; }
+.field input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px rgba(255, 140, 66, 0.18); }
+.age-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.age-chip { padding: 10px 14px; border-radius: 999px; border: 2px solid #e6e8f2; background: #fff; font: inherit; font-weight: 800; cursor: pointer; transition: transform 0.12s, background 0.12s; }
+.age-chip:hover { transform: translateY(-2px); }
+.age-chip.on { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 4px 0 var(--primary-dark); }
+.profile-cost { background: #fff6dc; border-radius: 12px; padding: 10px 14px; font-size: 0.95rem; color: #5a3d00; margin: 6px 0 4px; }
+.rank-panel { width: min(640px, 100%); text-align: left; }
+.rank-panel h2 { text-align: center; }
+.me-card { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 6px 0 12px; }
+.me-card > div { background: linear-gradient(160deg, #fff3c9, #ffe08a); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+.me-card small { color: #7a5a10; font-size: 0.78rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.me-card b { font-family: "Jua", sans-serif; font-size: 1.5rem; color: #4a3200; font-weight: 400; }
+.rank-tabs { display: flex; gap: 6px; margin-bottom: 8px; flex-wrap: wrap; }
+.rank-tab { flex: 1 1 auto; padding: 8px 10px; border-radius: 999px; border: 2px solid #e6e8f2; background: #fff; font: inherit; font-weight: 800; font-size: 0.9rem; cursor: pointer; }
+.rank-tab.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+.rank-list { display: flex; flex-direction: column; gap: 6px; min-height: 120px; }
+.rank-row { display: grid; grid-template-columns: 2.2em 1fr auto auto auto; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 12px; background: #f6f7fc; font-weight: 700; }
+.rank-row.me { background: #fff3c9; box-shadow: inset 0 0 0 2px #ffd24d; }
+.rank-row .rk { font-family: "Jua", sans-serif; font-size: 1.1rem; text-align: center; }
+.rank-row .nm { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-row .bd { font-size: 0.78rem; color: var(--muted); background: #fff; border-radius: 999px; padding: 2px 8px; }
+.rank-row .pt { font-variant-numeric: tabular-nums; }
+.rank-row .st { font-size: 0.85rem; color: #7a5a10; }
+.rank-empty, .rank-hint { color: var(--muted); text-align: center; padding: 20px 8px; margin: 0; }
+.rank-updated { color: var(--muted); font-size: 0.85rem; margin: 8px 0; text-align: center; }
+.band-stats { display: flex; flex-direction: column; gap: 10px; }
+.band-row { background: #f6f7fc; border-radius: 12px; padding: 10px 12px; }
+.band-row.mine { background: #fff3c9; }
+.band-name { font-weight: 800; margin-bottom: 4px; }
+.band-bar { height: 12px; border-radius: 999px; background: #e6e8f2; overflow: hidden; }
+.band-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffb347, #ff8c42); border-radius: 999px; transition: width 0.4s; }
+.band-meta { font-size: 0.85rem; color: var(--muted); margin-top: 4px; }
+.invite-card { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; background: linear-gradient(160deg, #e8f3ff, #d6ecff); border-radius: 16px; padding: 12px 16px; margin: 6px 0 12px; }
+.invite-card > div { display: flex; flex-direction: column; gap: 2px; }
+.invite-card small { color: #2a5fb3; font-size: 0.8rem; }
+.invite-card .code { font-family: "Jua", sans-serif; font-size: 2rem; letter-spacing: 0.15em; color: #1f3f78; font-weight: 400; }
+@media (max-width: 600px) {
+  .me-card { grid-template-columns: 1fr 1fr 1fr; gap: 6px; } .me-card b { font-size: 1.2rem; }
+  .rank-row { grid-template-columns: 2em 1fr auto auto; } .rank-row .bd { display: none; }
+  .rank-tab { font-size: 0.82rem; padding: 7px 8px; }
+  .profile-chip { font-size: 0.88rem; }
 }

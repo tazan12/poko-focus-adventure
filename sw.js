@@ -1,5 +1,5 @@
 // 서비스 워커 — 앱 셸과 에셋을 캐시해 오프라인/홈 화면 앱으로 동작 (캐시 이름을 바꾸면 새 버전 배포)
-const CACHE = "poko-focus-v202609151809";
+const CACHE = "poko-focus-v202609152013";
 const ASSETS = [
  "assets/bg/attic.jpg",
  "assets/bg/camp.jpg",
@@ -16,6 +16,7 @@ const ASSETS = [
  "assets/bg/stage.jpg",
  "assets/characters/bell.png",
  "assets/characters/bottle.png",
+ "assets/characters/bunny.png",
  "assets/characters/chest.png",
  "assets/characters/cloud.png",
  "assets/characters/coin.png",
@@ -23,6 +24,7 @@ const ASSETS = [
  "assets/characters/fruit.png",
  "assets/characters/lilypad.png",
  "assets/characters/moon.png",
+ "assets/characters/owl.png",
  "assets/characters/planet.png",
  "assets/characters/poko_alert.png",
  "assets/characters/poko_boat.png",
@@ -39,6 +41,7 @@ const ASSETS = [
  "assets/characters/poko_thinking.png",
  "assets/characters/spiky_king.png",
  "assets/characters/spiky_nogo.png",
+ "assets/characters/squirrel.png",
  "assets/characters/star_go.png",
  "assets/characters/star_gold.png",
  "assets/characters/tent.png",
@@ -54,11 +57,13 @@ const ASSETS = [
  "assets/icons/icon-maskable-512.png",
  "assets/keyvisual.jpg",
  "assets/sprites/poko_dance.png",
+ "assets/sprites/poko_duck.png",
  "assets/sprites/poko_idle.png",
  "assets/sprites/poko_jump.png",
  "assets/sprites/poko_run.png",
  "assets/sprites/poko_wave.png",
  "assets/sprites/spiky_idle.png",
+ "assets/sprites/spiky_run.png",
  "assets/sprites/star_idle.png",
  "assets/stickers/attic.png",
  "assets/stickers/boss.png",
@@ -80,6 +85,7 @@ const ASSETS = [
  "js/fx.js",
  "js/main.js",
  "js/music.js",
+ "js/online.js",
  "js/sprite.js",
  "js/stagefx.js",
  "js/storage.js",

@@ -33,7 +33,8 @@
   <div class="home-panel" id="home-panel">
     <p class="eyebrow">별빛 집중 어드벤처</p>
     <h1 class="title"><span>포코와</span><span>별빛 탐험대</span></h1>
-    <p class="subtitle">집중의 힘으로 사라진 별을 되찾자!</p>
+    <p class="subtitle" id="home-subtitle">집중의 힘으로 사라진 별을 되찾자!</p>
+    <button class="profile-chip" id="btn-profile" title="탐험대원 카드"><span class="pc-face">🦊</span><span class="pc-text" id="profile-chip-text">이름 짓기</span></button>
     <div class="home-stats" id="home-stats"></div>
     <div class="home-challenge" id="home-challenge"></div>
     <div class="home-today" id="home-today"></div>
@@ -44,6 +45,10 @@
         <button class="btn btn-glass" id="btn-free-play">🗺 세계 고르기</button>
         <button class="btn btn-glass" id="btn-shop">🎩 포코 꾸미기</button>
         <button class="btn btn-glass" id="btn-report">📊 보호자 리포트</button>
+      </div>
+      <div class="home-row">
+        <button class="btn btn-glass" id="btn-rank">🏆 이번 주 랭킹</button>
+        <button class="btn btn-glass" id="btn-invite">💌 친구 초대</button>
       </div>
     </div>
     <div class="home-stickers" id="home-stickers"></div>
@@ -167,6 +172,45 @@
   </div>
 </section>
 
+<!-- 탐험대원 카드: 닉네임·나이 (첫 이름 무료, 이후 변경은 코인) -->
+<section id="screen-profile" class="screen">
+  <div class="panel profile-panel">
+    <h2 id="profile-title">탐험대원 카드 만들기</h2>
+    <p class="report-note" id="profile-note">별빛 탐험대에 이름을 올려요. 나이에 맞춰 놀이 속도가 조금씩 달라져요.</p>
+    <label class="field"><span>탐험대원 이름</span><input id="profile-name" type="text" maxlength="8" placeholder="8글자까지" autocomplete="off"></label>
+    <div class="field"><span>나이</span><div class="age-chips" id="profile-ages"></div></div>
+    <label class="field" id="profile-invite-field"><span>친구 초대코드 <small>(있으면 둘 다 +50 코인)</small></span><input id="profile-invite" type="text" maxlength="6" placeholder="예: ABC123" autocomplete="off" style="text-transform:uppercase"></label>
+    <p class="profile-cost" id="profile-cost"></p>
+    <p class="shop-msg" id="profile-msg"></p>
+    <div class="home-row">
+      <button class="btn btn-primary btn-big" id="btn-profile-save">저장하기</button>
+      <button class="btn btn-ghost" data-go="home">← 돌아가기</button>
+    </div>
+  </div>
+</section>
+
+<!-- 이번 주 랭킹 + 친구 초대 -->
+<section id="screen-rank" class="screen">
+  <div class="panel rank-panel">
+    <h2>🏆 이번 주 탐험 랭킹</h2>
+    <p class="report-note" id="rank-note">별 1개 = 20점, 모은 코인 1개 = 1점. 매주 월요일에 새로 시작해요.</p>
+    <div class="rank-me" id="rank-me"></div>
+    <div class="rank-tabs" id="rank-tabs">
+      <button class="rank-tab active" data-tab="all">전체</button>
+      <button class="rank-tab" data-tab="band">내 나이대</button>
+      <button class="rank-tab" data-tab="friends">친구</button>
+      <button class="rank-tab" data-tab="stats">나이대 분석</button>
+    </div>
+    <div class="rank-list" id="rank-list"></div>
+    <p class="rank-updated" id="rank-updated"></p>
+    <div class="invite-box" id="invite-box"></div>
+    <div class="home-row">
+      <button class="btn btn-ghost" id="btn-rank-refresh">🔄 새로고침</button>
+      <button class="btn btn-ghost" data-go="home">← 돌아가기</button>
+    </div>
+  </div>
+</section>
+
 <!-- 보호자 리포트 -->
 <section id="screen-report" class="screen">
   <div class="panel report-panel">
@@ -187,6 +231,7 @@
 <script src="js/music.js"></script>
 <script src="js/storage.js"></script>
 <script src="js/adaptive.js"></script>
+<script src="js/online.js"></script>
 <script src="js/fx.js"></script>
 <script src="js/sprite.js"></script>
 <script src="js/stagefx.js"></script>
