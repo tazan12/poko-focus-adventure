@@ -242,7 +242,7 @@
       $("profile-ages").innerHTML = [6, 7, 8, 9, 10, 11, 12, 13].map((a) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${a}살</button>`).join("")
         + `<button type="button" class="age-chip${age && age >= 14 ? " on" : ""}" data-age="adult">14살 이상</button>`
         + `<label class="age-input${age && age >= 14 ? "" : " hidden"}" id="age-input-wrap"><span>나이</span><input id="age-input" type="number" inputmode="numeric" min="14" max="99" value="${age && age >= 14 ? age : 20}"><span>살</span><small id="age-band-hint"></small></label>`;
-      const hint = () => { const h = $("age-band-hint"); if (!h) return; const a = age || 0; h.textContent = a >= 14 ? `${Online.ageBand(a)} · 시간 창 ×${Adaptive.AGE_CURVE ? (() => { const s0 = Adaptive.age; Adaptive.age = a; const f = Adaptive.ageFactor(); Adaptive.age = s0; return f.toFixed(2); })() : ""}` : ""; };
+      const hint = () => { const h = $("age-band-hint"); if (!h) return; const a = age || 0; h.textContent = a >= 14 ? `다른 사람에게는 '${Online.ageBand(a)}'로 보여요 · 시간 창 ×${Adaptive.AGE_CURVE ? (() => { const s0 = Adaptive.age; Adaptive.age = a; const f = Adaptive.ageFactor(); Adaptive.age = s0; return f.toFixed(2); })() : ""}` : ""; };
       $("profile-ages").querySelectorAll(".age-chip").forEach((b) => b.addEventListener("click", () => {
         const v = b.dataset.age;
         $("profile-ages").querySelectorAll(".age-chip").forEach((x) => x.classList.toggle("on", x === b));
@@ -256,9 +256,10 @@
       const hasInviter = !!p.invitedBy;
       $("profile-invite-field").hidden = hasInviter;
       $("profile-invite").value = p.pendingInvite || "";
-      $("profile-cost").innerHTML = p.name
+      $("profile-cost").innerHTML = (p.name
         ? `이름을 바꾸면 <b>${Storage.RENAME_COST}코인</b>이 들어요 (보유 ${Storage.load().coins}코인). 나이는 언제든 무료로 고칠 수 있어요.${hasInviter ? `<br>💌 ${p.invitedBy}의 초대로 함께하고 있어요.` : ""}`
-        : `첫 이름은 <b>무료</b>! 다음부터 바꿀 때는 ${Storage.RENAME_COST}코인이 들어요.`;
+        : `첫 이름은 <b>무료</b>! 다음부터 바꿀 때는 ${Storage.RENAME_COST}코인이 들어요.`)
+        + `<br>🔒 정확한 나이는 <b>나만</b> 볼 수 있어요. 랭킹·친구에게는 <b>연령대</b>(예: ${Online.ageBand(p.age || 9)})로만 보여요.`;
       $("profile-msg").textContent = "";
       show("profile");
       if (!p.name) setTimeout(() => $("profile-name").focus(), 300);
@@ -429,7 +430,7 @@
     const d = Storage.load();
     $("home-notice").hidden = true;
     const pf = d.profile || {};
-    $("profile-chip-text").textContent = pf.name ? `${pf.name} · ${pf.age}살` : "이름 짓기 (무료)";
+    $("profile-chip-text").textContent = pf.name ? `${pf.name} · ${Online.ageBand(pf.age)}` : "이름 짓기 (무료)";
     $("btn-profile").classList.toggle("empty", !pf.name);
     $("home-subtitle").textContent = pf.name ? `${pf.name} 탐험대원, 오늘도 별을 모으러 가자!` : "집중의 힘으로 사라진 별을 되찾자!";
     $("btn-report").textContent = Adaptive.grown ? "📊 내 기록" : "📊 보호자 리포트";
