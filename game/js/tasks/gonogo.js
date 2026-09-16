@@ -100,7 +100,7 @@ const TaskGoNoGo = {
     ctx.controls.innerHTML = `<button class="tap-btn" id="gng-catch">잡기!</button>${tier.log ? `<button class="tap-btn jump" id="gng-jump">점프!</button>` : ""}${tier.bee ? `<button class="tap-btn duck" id="gng-duck">숙이기!</button>` : ""}<div class="key-hint">키보드: 스페이스 = 잡기${tier.log ? " · ↑ = 점프" : ""}${tier.bee ? " · ↓ = 숙이기" : ""} · 화면 터치 = 잡기</div>`;
     const lane = document.getElementById("runner-lane");
     const poko = document.getElementById("runner-poko");
-    const CHAR_H = window.innerWidth < 600 ? "22%" : "30%";
+    const CHAR_H = "var(--char-h, 30%)"; // 기기별 크기는 CSS(.runner-poko --char-h)가 정한다
     const runAnim = () => Sprite.play(poko, "poko_run", { fps: 12, charHeight: CHAR_H });
     runAnim();
     // 잡기 = 제자리에서 손을 뻗어 안기(점프 아님) / 점프 = 포물선 / 숙이기 = 납작
@@ -124,9 +124,9 @@ const TaskGoNoGo = {
     const ZONE = 0.55; // 응답 창의 이 비율 이후부터 "뛰어넘기/숙이기 구간"
 
     // 상대가 주인공 앞에 도착하는 시점(전체 이동 구간 대비 비율)을 실제 배치로 계산 → 응답 창 = 도착까지의 시간
-    const passFrac = () => {
+    const passFrac = (wrapEl) => {
       const R = lane.getBoundingClientRect(), P = poko.getBoundingClientRect();
-      const critterW = R.width * (window.innerWidth < 600 ? 0.22 : 0.16);
+      const critterW = wrapEl ? wrapEl.getBoundingClientRect().width : R.width * 0.16; // 실제 CSS 크기 사용 (기기별로 다름)
       const pokoCenter = P.left + P.width * 0.55 - R.left;
       const startX = R.width, endX = -R.width * 0.25; // left: 100% → -25%
       return Math.min(0.85, Math.max(0.5, (startX - (pokoCenter - critterW / 2)) / (startX - endX)));
@@ -196,10 +196,12 @@ const TaskGoNoGo = {
       if (burst) { Audio.alert(); await ctx.showMessage("⚡ 가속 구간!", "친구들이 더 빨리 달려와요!", 1600); }
       const win = Math.round((p.stim + p.isi) * (burst ? 0.7 : 1)); // 응답 창(jsPsych와 동일: 자극 + ISI)
       for (const t of this.makeBlock(goIsStar, tier)) {
-        const frac = passFrac();
-        const dur = Math.round(win / frac);
         const wrap = document.createElement("div");
         wrap.className = `runner-critter ${t.kind}${tier.fog ? " fog" : ""}`;
+        wrap.style.animation = "none"; lane.appendChild(wrap); // 먼저 붙여 실제 폭을 잰다 (left:100% 이라 화면 밖)
+        const frac = passFrac(wrap);
+        const dur = Math.round(win / frac);
+        wrap.style.animation = "";
         wrap.style.setProperty("--dur", `${dur}ms`);
         wrap.style.setProperty("--pass", frac.toFixed(3));
         const motion = t.kind === "bee" ? "flap" : t.kind === "log" ? "roll" : t.kind === "spiky" ? "" : "hop";
@@ -209,7 +211,6 @@ const TaskGoNoGo = {
         else if (t.kind === "spiky") Sprite.play(el, "spiky_run", { fps: 9 });
         else if (t.kind === "star") Sprite.play(el, "star_idle", { fps: 6 });
         else el.style.backgroundImage = `url("assets/characters/${IMG[t.kind]}.png")`;
-        lane.appendChild(wrap);
         cur = { t, wrap, el, pressed: null, onset: performance.now(), rt: null, window: win, early: false };
         const readyTimer = t.go ? setTimeout(() => { if (wrap.isConnected && !wrap.classList.contains("stop")) wrap.classList.add("ready"); }, Math.round(win * ZONE)) : null;
         await ctx.wait(win);

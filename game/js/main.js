@@ -130,7 +130,9 @@
   let lives = 0, maxLives = 0;
   function livesFor() { const dbg = +(localStorage.getItem("poko_debug_lives") || 0); if (dbg) return dbg; const a = Adaptive.age || 9; return a >= 14 ? 3 : a <= 8 ? 5 : 4; }
   function renderLives() {
-    $("hud-lives").innerHTML = Array.from({ length: maxLives }, (_, i) => `<i class="${i < lives ? "on" : "off"}"></i>`).join("");
+    // 표시는 최대 8개 (디버그로 목숨을 크게 잡아도 HUD가 넘치지 않게)
+    const show = Math.min(maxLives, 8);
+    $("hud-lives").innerHTML = Array.from({ length: show }, (_, i) => `<i class="${i < lives ? "on" : "off"}"></i>`).join("") + (maxLives > show ? `<b>${lives}</b>` : "");
   }
   function loseLife(el) {
     if (lives <= 0) return;

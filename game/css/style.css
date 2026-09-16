@@ -166,7 +166,7 @@ p { line-height: 1.5; }
 @keyframes scroll-bg { to { background-position-x: -1344px; } }
 .runner-spot { position: absolute; bottom: 24%; width: 15%; aspect-ratio: 1; }
 #spot-0 { left: 34%; } #spot-1 { left: 50%; } #spot-2 { left: 66%; } #spot-3 { left: 82%; }
-.runner-poko { position: absolute; left: 8%; bottom: 20%; transform-origin: bottom center; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35)); transition: transform 0.07s linear; }
+.runner-poko { --char-h: 30%; position: absolute; left: 8%; bottom: 20%; transform-origin: bottom center; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35)); transition: transform 0.07s linear; }
 
 /* ===== ② 별자리 망원경 ===== */
 .sky { position: relative; width: 100%; height: 100%; overflow: hidden; }
@@ -186,7 +186,7 @@ p { line-height: 1.5; }
 .nb-cell .pad-slot { position: absolute; inset: 18%; }
 .nb-cell.ripple::after { content: ""; position: absolute; inset: 10%; border-radius: 50%; border: 3px solid #b9ff8a; animation: ripple 0.7s ease-out forwards; }
 @keyframes ripple { from { transform: scale(0.6); opacity: 1; } to { transform: scale(1.6); opacity: 0; } }
-.pond-poko { position: absolute; right: 4%; bottom: 2%; transform-origin: bottom center; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35)); transition: transform 0.07s linear; }
+.pond-poko { --char-h: 26%; position: absolute; right: 4%; bottom: 2%; transform-origin: bottom center; filter: drop-shadow(0 8px 10px rgba(0,0,0,0.35)); transition: transform 0.07s linear; }
 
 /* ===== ④ 마법 물약 공방 ===== */
 .lab { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
@@ -736,7 +736,8 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 @media (hover: none) and (pointer: coarse) { .key-hint { display: none; } .potion-name small, .fruit small, .bell small { display: none; } }
 /* 세로 화면 미션: 포코·보트 등 캐릭터 크기 축소 */
 @media (max-width: 600px) and (orientation: portrait) {
-  .runner-poko { left: 4%; bottom: 22%; }
+  .runner-poko { left: 4%; bottom: 22%; --char-h: 22%; }
+  .pond-poko { --char-h: 18%; }
   .runner-spot { width: 20%; } .runner-spot.n6 { width: 16%; }
   .pond-poko { right: 2%; bottom: 0; }
   .boat { width: 38vw; }
@@ -885,3 +886,45 @@ body { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
 @media (max-width: 600px) { .hud-lives i { width: 13px; height: 13px; } .runner-critter.ready::after { font-size: 0.9rem; } }
 .runner-poko.land { animation: land 0.26s ease-out; }
 @keyframes land { 30% { transform: scaleY(0.88) scaleX(1.08); } 100% { transform: none; } }
+
+/* ===================== 휴대폰·태블릿 인터페이스 안정화 ===================== */
+html, body { overflow-x: hidden; }
+#screen-task { overflow: hidden; }
+.hud-lives { flex-wrap: nowrap; flex-shrink: 0; }
+.hud-lives b { font-size: 0.8rem; margin-left: 4px; color: #ffd24d; }
+.hud-left { min-width: 0; flex: 0 1 auto; }
+.hud-left #hud-mission { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 38vw; }
+/* 별빛 멜로디: 종 5개가 좁은 화면에서 넘치지 않게 */
+@media (max-width: 600px) {
+  .bell { width: min(16vh, 15vw, 96px); }
+  .bell-row { gap: clamp(4px, 2vw, 16px); }
+  .fruit-row { gap: clamp(6px, 2vw, 16px); flex-wrap: nowrap; }
+  .fruit { width: min(18vh, 24vw, 110px); }
+}
+/* 가로로 든 휴대폰(높이 낮음): 홈·세계 고르기는 스크롤, 안내 카드의 시작 버튼은 항상 보이게 */
+@media (max-height: 520px) {
+  #screen-home { overflow-y: auto; align-items: flex-start; }
+  .home-panel { padding-bottom: 28px; }
+  #screen-select { overflow-y: auto; align-items: flex-start; justify-content: flex-start; }
+  .world-cards { max-height: none; overflow: visible; }
+  .intro-panel { max-height: 100%; overflow-y: auto; }
+  .intro-panel .btn-big { position: sticky; bottom: 0; margin-top: 8px; box-shadow: 0 -8px 16px rgba(255,255,255,0.9), 0 8px 0 var(--primary-dark); }
+  .task-controls .tap-btn { padding: 10px 22px; }
+  .hud-left #hud-mission { max-width: 30vw; }
+}
+/* 태블릿 세로(600~1024px): 카드 3열, 미션 캐릭터·버튼 중간 크기 */
+@media (min-width: 601px) and (max-width: 1024px) and (orientation: portrait) {
+  .home-panel { margin: 0 auto; width: min(560px, 100%); }
+  .world-cards { grid-template-columns: repeat(3, 1fr); }
+  .hero-grid { grid-template-columns: repeat(4, 1fr); }
+  .runner-poko, .pond-poko { --char-h: 24%; }
+  .runner-critter { width: 18%; }
+  .nb-grid { width: 70vw; }
+  .cpt-box { width: 55vw; }
+  .sky-critter { width: 28vw; }
+  .tap-btn { padding: 18px 48px; font-size: 1.3rem; }
+}
+/* 안내 카드: 어떤 화면에서도 내용이 길면 스크롤되고 시작 버튼은 아래에 고정 */
+.intro-panel { max-height: 100%; overflow-y: auto; }
+.intro-panel .btn-big { position: sticky; bottom: 0; box-shadow: 0 -8px 16px rgba(255,255,255,0.9), 0 8px 0 var(--primary-dark); }
+.reward-panel, .fail-panel, .profile-panel, .rank-panel, .shop-panel, .report-panel { max-height: 100%; overflow-y: auto; }
