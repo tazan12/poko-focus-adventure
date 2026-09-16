@@ -20,8 +20,19 @@ const Adaptive = {
   age: null,
   speed: false, // ⚡ 스피드 도전(14살+): 시간 창 75%, 코인 2배
   TIME_KEYS: ["stim", "isi", "limit", "show", "interval", "speed", "tempo", "gap"],
-  get grown() { return !!this.age && this.age >= 14; },
-  ageFactor() { const a = !this.age ? 1 : this.age <= 8 ? 1.15 : this.age <= 10 ? 1 : this.age <= 13 ? 0.9 : this.age <= 17 ? 0.8 : 0.7; return a * (this.speed ? 0.75 : 1); },
+  get grown() { return !!this.age && this.age >= 14; },   // 14살+: 재미 위주(빠른 시작·스피드 도전·45분)
+  get senior() { return !!this.age && this.age >= 65; },  // 65살+: 다시 여유 있게(시간 창↑, 하트 5, 1스테이지부터)
+  // 나이별 시간 창 배율 — 꺾은선 보간. 어린이는 여유, 20대에 가장 빠르고, 50대부터 다시 느려져 75살+는 어린이 수준.
+  //   근거: 처리 속도·억제 조절은 20대 전후 정점 후 완만히 감소(Salthouse 2010 처리속도 연령 곡선).
+  AGE_CURVE: [[6, 1.2], [8, 1.1], [10, 1.0], [13, 0.9], [17, 0.8], [22, 0.75], [40, 0.78], [55, 0.88], [65, 1.0], [75, 1.15], [90, 1.3]],
+  ageFactor() {
+    let a = 1;
+    if (this.age) {
+      const c = this.AGE_CURVE, x = Math.max(c[0][0], Math.min(c[c.length - 1][0], this.age));
+      for (let i = 1; i < c.length; i++) if (x <= c[i][0]) { const [x0, y0] = c[i - 1], [x1, y1] = c[i]; a = y0 + (y1 - y0) * (x - x0) / (x1 - x0); break; }
+    }
+    return +(a * (this.speed ? 0.75 : 1)).toFixed(3);
+  },
   // 테스터 모드: 시행 수를 1/3로 줄인 파라미터 사본 (측정용 데이터에는 test 플래그가 붙는다)
   quick: false,
   tune(p) {

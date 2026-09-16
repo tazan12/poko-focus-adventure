@@ -41,7 +41,10 @@ const TaskCalc = {
     if (age <= 10) return { max: t(30, 100), ops: ["+", "-"], mul: level >= 3 ? (level >= 9 ? [11, 30, 2, 9] : [2, 9, 2, 9]) : null, div: level >= 6 ? 9 : null, mixed: false, label: level >= 6 ? "100까지 계산 + 곱셈·나눗셈" : level >= 3 ? "100까지 계산 + 구구단" : "100까지 덧셈·뺄셈" };
     if (age <= 13) return { max: t(50, 200), ops: ["+", "-"], mul: level >= 8 ? [11, 20, 11, 20] : level >= 3 ? [11, 40, 2, 9] : [2, 9, 2, 9], div: level >= 2 ? 12 : null, mixed: level >= 6, label: level >= 6 ? "혼합 계산 + 두 자리 곱셈" : "200까지 계산 + 곱셈·나눗셈" };
     if (age <= 17) return { max: t(100, 500), ops: ["+", "-"], mul: level >= 5 ? [11, 40, 11, 30] : [11, 60, 2, 9], div: 15, mixed: true, label: "혼합 계산 + 두 자리 곱셈·나눗셈" };
-    return { max: t(200, 1000), ops: ["+", "-"], mul: level >= 4 ? [12, 60, 12, 60] : [11, 90, 3, 12], div: 25, mixed: true, terms3: level >= 5, label: "세 항 혼합 계산 + 두 자리 곱셈" };
+    if (age <= 64) return { max: t(200, 1000), ops: ["+", "-"], mul: level >= 4 ? [12, 60, 12, 60] : [11, 90, 3, 12], div: 25, mixed: true, terms3: level >= 5, label: "세 항 혼합 계산 + 두 자리 곱셈" };
+    // 65살+: 두뇌 체조 수준 — 100 이내 덧셈·뺄셈과 구구단, 75살+는 50 이내로 더 가볍게
+    if (age <= 74) return { max: t(50, 100), ops: ["+", "-"], mul: level >= 4 ? [2, 9, 2, 9] : null, div: level >= 8 ? 9 : null, mixed: false, label: level >= 4 ? "100 이내 계산 + 구구단" : "100 이내 덧셈·뺄셈" };
+    return { max: t(20, 50), ops: ["+", "-"], mul: level >= 7 ? [2, 5, 2, 9] : null, div: null, mixed: false, label: "50 이내 덧셈·뺄셈" };
   },
 
   intro(level) {

@@ -10,7 +10,7 @@
     return [...CORE, ...rot, "stroop"];
   }
   const SESSION_ORDER = sessionOrder();
-  const DAILY_CAP_MIN = () => (Adaptive.grown ? 45 : 25);
+  const DAILY_CAP_MIN = () => (Adaptive.senior ? 30 : Adaptive.grown ? 45 : 25);
   const DAILY_CAP_SEC = { valueOf() { return DAILY_CAP_MIN() * 60; } };
   const MAX_STAGE = 10;
 
@@ -128,7 +128,8 @@
   //   나이대별: 6~8살 5개, 9~13살 4개, 14살+ 3개. 놓침(soft)은 하트를 깎지 않는다. 보호막 아이템이 막으면 유지.
   class FailError extends AbortError { constructor() { super(); this.name = "FailError"; } }
   let lives = 0, maxLives = 0;
-  function livesFor() { const dbg = +(localStorage.getItem("poko_debug_lives") || 0); if (dbg) return dbg; const a = Adaptive.age || 9; return a >= 14 ? 3 : a <= 8 ? 5 : 4; }
+  // 6~8살 5 / 9~13살 4 / 14~64살 3 / 65살+ 5 (여유 있게)
+  function livesFor() { const dbg = +(localStorage.getItem("poko_debug_lives") || 0); if (dbg) return dbg; const a = Adaptive.age || 9; return a >= 65 ? 5 : a >= 14 ? 3 : a <= 8 ? 5 : 4; }
   function renderLives() {
     // 표시는 최대 8개 (디버그로 목숨을 크게 잡아도 HUD가 넘치지 않게)
     const show = Math.min(maxLives, 8);
@@ -236,9 +237,22 @@
       const p = Storage.load().profile || {}; age = p.age || null;
       $("profile-title").textContent = p.name ? "탐험대원 카드" : "탐험대원 카드 만들기";
       $("profile-name").value = p.name || "";
-      const AGES = [...[6, 7, 8, 9, 10, 11, 12, 13].map((a) => [a, `${a}살`]), [15, "14~17살"], [25, "어른"]];
-      $("profile-ages").innerHTML = AGES.map(([a, label]) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${label}</button>`).join("");
-      $("profile-ages").querySelectorAll(".age-chip").forEach((b) => b.addEventListener("click", () => { age = +b.dataset.age; $("profile-ages").querySelectorAll(".age-chip").forEach((x) => x.classList.toggle("on", x === b)); Audio.tick(); }));
+      // 6~13살은 칩, 14살 이상은 실제 나이를 직접 입력 (청소년·어른·어르신 모두 나이에 맞춰 난이도가 달라진다)
+      const kid = age && age <= 13;
+      $("profile-ages").innerHTML = [6, 7, 8, 9, 10, 11, 12, 13].map((a) => `<button type="button" class="age-chip${a === age ? " on" : ""}" data-age="${a}">${a}살</button>`).join("")
+        + `<button type="button" class="age-chip${age && age >= 14 ? " on" : ""}" data-age="adult">14살 이상</button>`
+        + `<label class="age-input${age && age >= 14 ? "" : " hidden"}" id="age-input-wrap"><span>나이</span><input id="age-input" type="number" inputmode="numeric" min="14" max="99" value="${age && age >= 14 ? age : 20}"><span>살</span><small id="age-band-hint"></small></label>`;
+      const hint = () => { const h = $("age-band-hint"); if (!h) return; const a = age || 0; h.textContent = a >= 14 ? `${Online.ageBand(a)} · 시간 창 ×${Adaptive.AGE_CURVE ? (() => { const s0 = Adaptive.age; Adaptive.age = a; const f = Adaptive.ageFactor(); Adaptive.age = s0; return f.toFixed(2); })() : ""}` : ""; };
+      $("profile-ages").querySelectorAll(".age-chip").forEach((b) => b.addEventListener("click", () => {
+        const v = b.dataset.age;
+        $("profile-ages").querySelectorAll(".age-chip").forEach((x) => x.classList.toggle("on", x === b));
+        const wrap = $("age-input-wrap");
+        if (v === "adult") { wrap.classList.remove("hidden"); age = Math.max(14, Math.min(99, +$("age-input").value || 20)); $("age-input").focus(); }
+        else { wrap.classList.add("hidden"); age = +v; }
+        hint(); Audio.tick();
+      }));
+      $("age-input").addEventListener("input", () => { const v = +$("age-input").value; if (v >= 14 && v <= 99) { age = v; hint(); } });
+      hint();
       const hasInviter = !!p.invitedBy;
       $("profile-invite-field").hidden = hasInviter;
       $("profile-invite").value = p.pendingInvite || "";
@@ -259,7 +273,7 @@
       const res = Storage.setProfile({ name, age });
       if (!res.ok) { msg.textContent = `코인이 부족해요. 이름을 바꾸려면 ${Storage.RENAME_COST}코인이 필요해요.`; return; }
       Adaptive.age = age;
-      if (age >= 14) Storage.bumpLevels(3); else Adaptive.speed = false;
+      if (age >= 14 && age < 65) Storage.bumpLevels(3); else Adaptive.speed = false;
       const invite = ($("profile-invite").value || "").trim().toUpperCase() || null;
       const btn = $("btn-profile-save"); btn.disabled = true; msg.textContent = "저장 중…";
       let note = res.paid ? `이름을 바꿨어요 (−${res.paid}코인)` : `${name} 탐험대원, 환영해요!`;
@@ -294,7 +308,7 @@
       const el = $("rank-list");
       if (!data) return;
       if (tab === "stats") {
-        const bands = ["6~8살", "9~10살", "11~13살"]; const st = data.band_stats || [];
+        const st = data.band_stats || []; const bands = Online.BANDS.filter((b) => b === data.band || st.some((x) => x.band === b));
         const maxAvg = Math.max(1, ...st.map((b) => b.avg_points || 0));
         el.innerHTML = `<div class="band-stats">${bands.map((b) => { const s = st.find((x) => x.band === b) || { players: 0, avg_points: 0, top: 0 };
           return `<div class="band-row${b === data.band ? " mine" : ""}"><div class="band-name">${b}${b === data.band ? " · 내 나이대" : ""}</div><div class="band-bar"><i style="width:${Math.round((s.avg_points || 0) / maxAvg * 100)}%"></i></div><div class="band-meta">${s.players}명 · 평균 ${s.avg_points || 0}점 · 최고 ${s.top || 0}점</div></div>`; }).join("")}</div>
@@ -420,7 +434,7 @@
     $("home-subtitle").textContent = pf.name ? `${pf.name} 탐험대원, 오늘도 별을 모으러 가자!` : "집중의 힘으로 사라진 별을 되찾자!";
     $("btn-report").textContent = Adaptive.grown ? "📊 내 기록" : "📊 보호자 리포트";
     document.querySelector("#screen-report h2").textContent = Adaptive.grown ? "내 기록 리포트" : "보호자 리포트";
-    document.querySelector(".disclaimer").textContent = Adaptive.grown ? "하루 45분 이내로 가볍게 즐기는 걸 추천해요. 스피드 도전으로 코인을 2배로!" : "보호자와 함께 하루 25분 이내로 즐기는 걸 추천해요. 매일 조금씩이 가장 좋아요!";
+    document.querySelector(".disclaimer").textContent = Adaptive.senior ? "하루 30분 정도, 천천히 매일 조금씩이 가장 좋아요. 시간은 나이에 맞춰 넉넉하게 드려요." : Adaptive.grown ? "하루 45분 이내로 가볍게 즐기는 걸 추천해요. 스피드 도전으로 코인을 2배로!" : "보호자와 함께 하루 25분 이내로 즐기는 걸 추천해요. 매일 조금씩이 가장 좋아요!";
     const mins = Math.round(Storage.todaySeconds() / 60);
     const totalStars = Object.values(d.stages || {}).reduce((a, w) => a + Object.values(w).reduce((x, y) => x + y, 0), 0);
     $("home-stats").innerHTML = `
