@@ -59,7 +59,7 @@ const TaskNBack = {
       </div>`;
     ctx.controls.innerHTML = `<button class="tap-btn secondary" id="nb-tap">폴짝!</button><div class="key-hint">키보드: 스페이스</div>`;
     const poko = document.getElementById("pond-poko");
-    const CHAR_H = window.innerWidth < 600 ? "18%" : "26%";
+    const CHAR_H = "var(--char-h, 26%)"; // 기기별 크기는 CSS(.pond-poko --char-h)가 정한다
     const idle = () => Sprite.play(poko, "poko_idle", { fps: 4, charHeight: CHAR_H });
     idle();
     const hop = () => Sprite.play(poko, "poko_jump", { fps: 14, loop: false, charHeight: CHAR_H, arc: 45, onEnd: idle });

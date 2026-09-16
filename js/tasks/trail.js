@@ -48,7 +48,9 @@ const TaskTrail = {
   layout(n) {
     const cols = Math.ceil(Math.sqrt(n * 1.5)), rows = Math.ceil(n / cols);
     const cells = Stats.shuffle(Array.from({ length: cols * rows }, (_, i) => i)).slice(0, n);
-    return cells.map((c) => ({ x: ((c % cols) + 0.5 + (Math.random() - 0.5) * 0.45) / cols * 100, y: (Math.floor(c / cols) + 0.5 + (Math.random() - 0.5) * 0.45) / rows * 100 }));
+    const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+    // 등불 반지름만큼 안쪽으로(가로 9%·세로 10%) 제한해 작은 화면에서도 잘리지 않게
+    return cells.map((c) => ({ x: clamp(((c % cols) + 0.5 + (Math.random() - 0.5) * 0.45) / cols * 100, 9, 91), y: clamp((Math.floor(c / cols) + 0.5 + (Math.random() - 0.5) * 0.45) / rows * 100, 10, 90) }));
   },
 
   async run(ctx, level) {
