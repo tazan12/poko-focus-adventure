@@ -25,14 +25,15 @@ const Online = (() => {
     const w = Math.ceil(((x - y0) / 86400000 + 1) / 7);
     return `${x.getUTCFullYear()}-W${String(w).padStart(2, "0")}`;
   }
-  function ageBand(age) { return age <= 8 ? "6~8살" : age <= 10 ? "9~10살" : age <= 13 ? "11~13살" : age <= 17 ? "14~17살" : "어른"; }
+  const BANDS = [[8, "6~8살"], [10, "9~10살"], [13, "11~13살"], [17, "14~17살"], [29, "18~29살"], [49, "30~49살"], [64, "50~64살"], [74, "65~74살"], [999, "75살+"]];
+  function ageBand(age) { return (BANDS.find(([max]) => age <= max) || BANDS[BANDS.length - 1])[1]; }
 
   const me = () => (Storage.load().profile || {}).online || null;
   // claude.ai 아티팩트 미리보기에서는 외부 요청이 막혀 있어 온라인 기능을 끄고 안내만 한다
   const available = !/claude\.ai$/.test(location.hostname);
 
   return {
-    INVITE_BONUS, SHARE_URL, weekKey, ageBand, available,
+    INVITE_BONUS, SHARE_URL, weekKey, ageBand, available, BANDS: BANDS.map((b) => b[1]),
     get registered() { return !!me(); },
     // 등록: 성공하면 profile.online 에 id/secret/code 저장. 초대코드가 있으면 서버가 초대 관계를 기록
     async register(name, age, inviteCode) {

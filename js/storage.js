@@ -83,7 +83,7 @@ const Storage = (() => {
       const d = load();
       if (d.tester) return 10;
       const st = ((d.stages || {})[task]) || {};
-      let m = (d.profile && d.profile.age >= 14) ? 3 : 1;
+      let m = (d.profile && d.profile.age >= 14 && d.profile.age < 65) ? 3 : 1;
       for (let l = 1; l <= 10; l++) if ((st[l] || 0) >= 2) m = Math.min(10, l + 1);
       return m;
     },

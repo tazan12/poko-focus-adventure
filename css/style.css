@@ -928,3 +928,9 @@ html, body { overflow-x: hidden; }
 .intro-panel { max-height: 100%; overflow-y: auto; }
 .intro-panel .btn-big { position: sticky; bottom: 0; box-shadow: 0 -8px 16px rgba(255,255,255,0.9), 0 8px 0 var(--primary-dark); }
 .reward-panel, .fail-panel, .profile-panel, .rank-panel, .shop-panel, .report-panel { max-height: 100%; overflow-y: auto; }
+
+/* 나이 직접 입력 (14살 이상) */
+.age-input { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: #fff6dc; font-weight: 700; }
+.age-input.hidden { display: none; }
+.age-input input { width: 64px; font: inherit; font-size: 1.1rem; font-weight: 800; padding: 6px 8px; border-radius: 10px; border: 2px solid #e6e8f2; text-align: center; }
+.age-input small { color: var(--muted); font-weight: 400; margin-left: 4px; }
